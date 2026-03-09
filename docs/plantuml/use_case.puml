@@ -4,6 +4,7 @@ skinparam packageStyle rectangle
 
 actor "Käyttäjä" as User
 actor "Ylläpitäjä" as Admin
+actor "Järjestelmä" as System
 actor "Tekoälymalli (LLM)" as LLM
 actor "Uutislähde (RSS/Feed)" as Feed
 
@@ -25,7 +26,7 @@ rectangle "Uutisten kerääjä" {
 
   ' News browsing
   usecase "UC11: Selaa uutisotsikkoja" as UC11
-  usecase "UC12: Suodata uutisia aikarajalla" as UC12
+  usecase "UC12: Suodata uutisia aikavälille ja/tai teemoihin" as UC12
   usecase "UC13: Lue uutistiivistelmä" as UC13
   usecase "UC14: Avaa alkuperäinen artikkeli" as UC14
 
@@ -62,13 +63,18 @@ UC16 ..> UC17 : <<include>>
 User --> UC13
 UC13 ..> UC14 : <<extend>>
 
+UC03 --> System
 UC15 --> Feed
 UC16 --> LLM
 
+
+UC06 ..> UC18 : <<extend>>
+UC13 ..> UC18 : <<extend>>
 UC15 ..> UC18 : <<extend>>
 UC16 ..> UC18 : <<extend>>
 UC03 ..> UC18 : <<extend>>
 
+Admin --> UC01
 Admin --> UC19
 Admin --> UC20
 @enduml
