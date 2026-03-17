@@ -55,7 +55,7 @@ CREATE TABLE digest_sources (
     title       VARCHAR(500),
     source_name VARCHAR(100),
     published_at DATETIME,
-    FOREIGN KEY (digest_id) REFERENCES news_digest(id) ON DELETE CASCADE,
+    FOREIGN KEY (digest_id) REFERENCES news_digests(id) ON DELETE CASCADE,
     INDEX idx_digest_sources (digest_id),
     INDEX idx_url_hash (url_hash)
 );
