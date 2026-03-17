@@ -1,12 +1,14 @@
 CREATE TABLE users (
     id          VARCHAR(36)  PRIMARY KEY,
     email       VARCHAR(255) NOT NULL UNIQUE,
+    is_admin    BOOLEAN      NOT NULL DEFAULT FALSE,
     created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE sessions (
     id              VARCHAR(36)  PRIMARY KEY,
     user_id         VARCHAR(36)  NOT NULL,
+    session_type            VARCHAR(5)   NOT NULL DEFAULT,
     expires_at      DATETIME     NOT NULL,
     last_active_at  DATETIME     NOT NULL,
     ip_address      VARCHAR(45),
