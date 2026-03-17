@@ -1,6 +1,7 @@
 import { createPool } from 'mysql2'
 import { Kysely, MysqlDialect, } from 'kysely'
 import type { DB } from './types'
+import { env } from 'process'
 
 const dialect = new MysqlDialect({
   pool: createPool({
@@ -12,5 +13,10 @@ const dialect = new MysqlDialect({
   }),
 })
 
-// Singleton
-export const db = new Kysely<DB>({ dialect })
+// Singleton, HMR-resistant
+
+const globalForDb = globalThis as unknown as { db: Kysely<DB> | undefined }
+
+export const db = globalForDb.db ?? new Kysely<DB>({ dialect })
+
+if (env.NODE_ENV !== 'production') globalForDb.db = db
