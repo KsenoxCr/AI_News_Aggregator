@@ -1,7 +1,7 @@
 CREATE TABLE users (
     id          VARCHAR(36)  PRIMARY KEY,
     email       VARCHAR(255) NOT NULL UNIQUE,
-    is_admin    BOOLEAN      NOT NULL DEFAULT FALSE,
+    role        VARCHAR(5)   NOT NULL DEFAULT 'user',
     created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
