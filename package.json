@@ -13,7 +13,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "diagram": "npx sql2dbml ./src/server/db/schema.sql --mysql | npx dbml-renderer -o ./docs/diagrams/er-diagram.svg",
-    "db:start": "./scripts/start-db.sh"
+    "db:start": "./scripts/start-db.sh",
+    "db:gen-if": "./scripts/gen-db-if.sh"
   },
   "dependencies": {
     "@react-email/components": "^1.0.9",
@@ -39,6 +40,7 @@
     "@types/node": "^20.14.10",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "kysely-codegen": "^0.20.0",
     "postcss": "^8.5.3",
     "sql-lint": "^1.0.2",
     "tailwindcss": "^4.0.15",
