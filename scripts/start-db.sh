@@ -33,7 +33,7 @@ else
     -e MYSQL_PASSWORD="${LOCAL_DB_PASSWORD}" \
     -p 3306:3306 \
     -v news-aggr-db-data:/var/lib/mysql \
-    -v ./db/schema.sql:/docker-entrypoint-initdb.d/init.sql \
+    -v ./src/server/db/schema.sql:/docker-entrypoint-initdb.d/init.sql \
     mysql:8 \
   && docker start newsagg-db
 fi
