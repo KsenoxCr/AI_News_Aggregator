@@ -1,6 +1,6 @@
 export type { DB } from "./gen_types";
 
-export interface Sources {
+export interface Source {
   name: string,
   url: string
 }
