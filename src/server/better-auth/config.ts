@@ -3,6 +3,7 @@ import { magicLink } from "better-auth/plugins";
 import { Resend } from "resend";
 import { MagicLinkEmail } from "~/emails/magic-link"
 import { db } from "../db/db";
+import { AUTH } from "~/config/business";
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -21,11 +22,11 @@ export const auth = betterAuth({
         }
     },
     session: {
-        expiresIn: 60 * 60 * 24 * 7,   // 7d
-        updateAge: 60 * 60 * 24, // 1d
+        expiresIn: AUTH.sessionExpiresIn,
+        updateAge: AUTH.sessionUpdateAge,
         cookieCache: {
             enabled: true,
-            maxAge: 60 * 5, // 5 min
+            maxAge: AUTH.sessionCacheMaxAge,
             strategy: "compact"
         },
         fields: {
@@ -83,7 +84,7 @@ export const auth = betterAuth({
                     react: MagicLinkEmail({ url }),
                 })
             },
-            expiresIn: 60 * 5, // TTL
+            expiresIn: AUTH.magicLinkExpiresIn
         }),
     ],
     databaseHooks: {
