@@ -3,7 +3,7 @@ import { Kysely, MysqlDialect, } from 'kysely'
 import type { DB } from './types'
 import { env } from 'process'
 
-const dialect = new MysqlDialect({
+export const dialect = new MysqlDialect({
   pool: createPool({
     host: process.env.DB_HOST,
     port: Number(process.env.DB_PORT ?? 3306),
