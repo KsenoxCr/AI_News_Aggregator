@@ -12,9 +12,9 @@
     "preview": "next build && next start",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "diagram": "npx sql2dbml ./src/server/db/schema.sql --mysql | npx dbml-renderer -o ./docs/diagrams/er-diagram.svg",
+    "db:diagram": "npx sql2dbml ./src/server/db/schema.sql --mysql | npx dbml-renderer -o ./docs/diagrams/er-diagram.svg",
     "db:start": "./scripts/start-db.sh",
-    "db:gen-if": "./scripts/gen-db-if.sh"
+    "db:gen-if": "./scripts/gen-db-if.sh",
     "db:migrate": "kysely migrate latest",
     "db:rollback": "kysely migrate rollback --all",
     "db:make": "kysely migrate make",
