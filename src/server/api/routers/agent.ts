@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db/db";
-import { isDuplicateEntry, TestOAIAPI } from "~/server/lib/util";
+import { IsDuplicateEntry, TestOAIAPI } from "~/server/lib/util";
+import { MAX } from '~/config/business'
 
 const addAgentInput = z.object({
     slug: z.string().min(1).max(30),
@@ -20,6 +21,16 @@ export const agentRouter = createTRPCRouter({
     addAgent: protectedProcedure
         .input(addAgentInput)
         .mutation(async ({ ctx, input }) => {
+            const existingAgents = await db
+                .selectFrom('agents')
+                .select(db.fn.count('id').as('count'))
+                .where('user_id', '=', ctx.session.user.id)
+                .executeTakeFirst();
+
+            if (Number((existingAgents!.count ?? 0)) >= MAX.agents) {
+                return { status: "failure", errorCode: "OUT_OF_BOUNDS", error: "Maximum agent limit reached" };
+            }
+
             const agentId = crypto.randomUUID()
 
             const res = await TestOAIAPI(input.url, input.api_key)
@@ -67,12 +78,12 @@ export const agentRouter = createTRPCRouter({
             } catch (err: any) {
                 let errorCode, error = null
 
-                if (isDuplicateEntry(err, "slug")) {
+                if (IsDuplicateEntry(err, "slug")) {
                     errorCode = "CONFLICT"
                     error = "Name already in use"
                 }
 
-                if (isDuplicateEntry(err, "url")) {
+                if (IsDuplicateEntry(err, "url")) {
                     errorCode = "CONFLICT"
                     error = "URL already in use"
                 }
