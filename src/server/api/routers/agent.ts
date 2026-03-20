@@ -130,12 +130,12 @@ export const agentRouter = createTRPCRouter({
             } catch (err: any) {
                 let errorCode, error = null
 
-                if (isDuplicateEntry(err, "slug")) {
+                if (IsDuplicateEntry(err, "slug")) {
                     errorCode = "CONFLICT"
                     error = "Name already in use"
                 }
 
-                if (isDuplicateEntry(err, "url")) {
+                if (IsDuplicateEntry(err, "url")) {
                     errorCode = "CONFLICT"
                     error = "URL already in use"
                 }
