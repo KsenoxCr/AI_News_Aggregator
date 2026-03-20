@@ -47,6 +47,7 @@ CREATE TABLE sources (
   id  VARCHAR(36) NOT NULL PRIMARY KEY,
   slug  VARCHAR(30) NOT NULL,
   url  VARCHAR(100) NOT NULL,
+  enabled   BOOLEAN DEFAULT TRUE,
   user_id   VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   UNIQUE KEY (user_id, slug),
   UNIQUE KEY (user_id, url)
