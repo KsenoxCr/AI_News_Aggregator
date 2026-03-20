@@ -9,23 +9,28 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
 
-export type Json = ColumnType<JsonValue, string, string>;
+export interface Agents {
+  api_key: string;
+  id: string;
+  slug: string;
+  url: string;
+  user_id: string;
+}
 
-export type JsonArray = JsonValue[];
+export interface Categories {
+  slug: string;
+}
 
-export type JsonObject = {
-  [x: string]: JsonValue | undefined;
-};
-
-export type JsonPrimitive = boolean | number | string | null;
-
-export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
+export interface DigestCategories {
+  category: string;
+  digest_id: string;
+}
 
 export interface DigestSources {
   digest_id: string;
   id: string;
   published_at: Date | null;
-  source_name: string | null;
+  source_id: string | null;
   title: string | null;
   url: string;
   url_hash: string;
@@ -43,7 +48,7 @@ export interface MagicLinkTokens {
 }
 
 export interface NewsDigests {
-  category: string | null;
+  agent_id: string;
   created_at: Generated<Date>;
   expires_at: Date;
   id: string;
@@ -63,11 +68,15 @@ export interface Sessions {
   user_id: string;
 }
 
-export interface UserPreferences {
-  categories: Json | null;
-  language: Generated<string>;
-  sources: Json | null;
-  updated_at: Generated<Date>;
+export interface Sources {
+  id: string;
+  slug: string;
+  url: string;
+  user_id: string;
+}
+
+export interface UserCategories {
+  category: string;
   user_id: string;
 }
 
@@ -75,14 +84,22 @@ export interface Users {
   created_at: Generated<Date>;
   email: string;
   id: string;
+  language: Generated<string | null>;
+  preferences: string | null;
   role: Generated<string>;
+  selected_agent: string | null;
+  updated_at: Generated<Date>;
 }
 
 export interface DB {
+  agents: Agents;
+  categories: Categories;
+  digest_categories: DigestCategories;
   digest_sources: DigestSources;
   magic_link_tokens: MagicLinkTokens;
   news_digests: NewsDigests;
   sessions: Sessions;
-  user_preferences: UserPreferences;
+  sources: Sources;
+  user_categories: UserCategories;
   users: Users;
 }
