@@ -2,77 +2,83 @@ import { z } from "zod";
 import { MAX } from "~/config/business";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db/db";
-import type { Source } from "~/server/db/types";
+import { IsDuplicateEntry } from "~/server/lib/util";
+
+const addSourceInput = z.object({
+    slug: z.string().min(1).max(30),
+    url: z.string().url().max(100),
+});
+
+const removeSourceInput = z.string().length(36);
 
 export const sourceRouter = createTRPCRouter({
     addSource: protectedProcedure
-        .input(z.object({ name: z.string(), url: z.string() }))
+        .input(addSourceInput)
         .mutation(async ({ ctx, input }) => {
-            return await db.transaction().execute(async (trx) => {
-                const prefs = await trx
-                    .selectFrom('user_preferences')
-                    .select('sources')
-                    .where('user_id', '=', ctx.session.user.id)
-                    .executeTakeFirst();
+            const existingSources = await db
+                .selectFrom('sources')
+                .select(db.fn.count('id').as('count'))
+                .where('user_id', '=', ctx.session.user.id)
+                .executeTakeFirst();
 
-                const sources = (prefs?.sources ? JSON.parse(prefs?.sources.toString()) : []) as Source[];
+            if ((Number(existingSources?.count ?? 0)) >= MAX.sources) {
+                return {
+                    status: "failure",
+                    errorCode: "OUT_OF_BOUNDS",
+                    error: "Maximum source limit reached"
+                };
+            }
 
-                if (sources.length === MAX.sources)
-                    return {
-                        status: "failure",
-                        error: "OUT_OF_BOUNDS"
-                    }
+            const sourceId = crypto.randomUUID();
 
-                if (sources.find(src => src.name === input.name))
-                    return {
-                        status: "failure",
-                        error: "DUPLICATE"
-                    }
-
-                sources.push(input);
-
-                await trx
-                    .updateTable('user_preferences')
-                    .set({ sources: JSON.stringify(sources) })
-                    .where('user_id', '=', ctx.session.user.id)
+            try {
+                await db
+                    .insertInto('sources')
+                    .values({
+                        id: sourceId,
+                        slug: input.slug,
+                        url: input.url,
+                        user_id: ctx.session.user.id,
+                    })
                     .execute();
+            } catch (err: any) {
+                let errorCode, error = null;
+
+                if (IsDuplicateEntry(err, "slug")) {
+                    errorCode = "CONFLICT";
+                    error = "Name already in use";
+                }
+
+                if (IsDuplicateEntry(err, "url")) {
+                    errorCode = "CONFLICT";
+                    error = "URL already in use";
+                }
 
                 return {
-                    status: "success",
-                    error: null
-                }
-            })
+                    status: "failure",
+                    errorCode: errorCode ?? err.code,
+                    error: error ?? err.message
+                };
+            }
+
+            return { status: "success", id: sourceId };
         }),
     removeSource: protectedProcedure
-        .input(z.string())
+        .input(removeSourceInput)
         .mutation(async ({ ctx, input }) => {
-            return await db.transaction().execute(async (trx) => {
-                const prefs = await trx
-                    .selectFrom('user_preferences')
-                    .select('sources')
-                    .where('user_id', '=', ctx.session.user.id)
-                    .executeTakeFirst();
+            const result = await db
+                .deleteFrom('sources')
+                .where('id', '=', input)
+                .where('user_id', '=', ctx.session.user.id)
+                .execute();
 
-                const sources = (prefs?.sources ? JSON.parse(prefs?.sources.toString()) : []) as Source[];
-
-                const filteredSources = sources.filter(src => src.name !== input);
-
-                if (sources.length === filteredSources.length)
-                    return {
-                        status: "failure",
-                        error: "NOT_FOUND"
-                    }
-
-                await trx
-                    .updateTable('user_preferences')
-                    .set({ sources: JSON.stringify(filteredSources) })
-                    .where('user_id', '=', ctx.session.user.id)
-                    .execute();
-
+            if (result[0]!.numDeletedRows === 0n) {
                 return {
-                    status: "success",
-                    error: null
-                }
-            })
+                    status: "failure",
+                    error: "NOT_FOUND"
+                };
+            }
+
+            return { status: "success" };
         }),
 });
