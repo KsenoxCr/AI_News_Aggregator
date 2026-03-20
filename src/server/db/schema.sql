@@ -3,7 +3,8 @@ CREATE TABLE users (
     email       VARCHAR(255) NOT NULL UNIQUE,
     role        VARCHAR(5)   NOT NULL DEFAULT 'user',
     preferences TEXT,
-    language    VARCHAR(10)  NOT NULL DEFAULT 'fi',
+    language    VARCHAR(10)  DEFAULT 'en',
+    selected_agent VARCHAR(36) REFERENCES users(id) ON DELETE CASCADE,
     created_at  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
