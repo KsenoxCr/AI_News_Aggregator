@@ -18,6 +18,18 @@ const modifyAgentInput = z.object({
 });
 
 export const agentRouter = createTRPCRouter({
+    getAgents: protectedProcedure
+        .query(async ({ ctx }) => {
+            const agents = await db
+                .selectFrom('agents')
+                .where('user_id', '=', ctx.session.user.id)
+                .execute()
+
+            return {
+                status: "success",
+                agents
+            }
+        }),
     addAgent: protectedProcedure
         .input(addAgentInput)
         .mutation(async ({ ctx, input }) => {
