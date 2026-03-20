@@ -11,5 +11,7 @@ export const ROLES = {
 } as const
 
 export const MAX = {
-    sources: 10
+    sources: 10,
+    categories: 10,
+    agents: 5
 } as const
