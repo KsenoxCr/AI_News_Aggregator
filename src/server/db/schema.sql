@@ -39,7 +39,8 @@ CREATE TABLE agents (
     api_key VARCHAR(256) NOT NULL,
     user_id   VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE KEY (user_id, slug),
-    UNIQUE KEY (user_id, url)
+    UNIQUE KEY (user_id, url),
+    INDEX idx_users_agents (user_id)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE sources (
