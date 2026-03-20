@@ -12,6 +12,18 @@ const addSourceInput = z.object({
 const removeSourceInput = z.string().length(36);
 
 export const sourceRouter = createTRPCRouter({
+    getSources: protectedProcedure
+        .query(async ({ ctx }) => {
+            const sources = await db
+                .selectFrom('sources')
+                .where('user_id', '=', ctx.session.user.id)
+                .execute()
+
+            return {
+                status: "success",
+                sources
+            }
+        }),
     addSource: protectedProcedure
         .input(addSourceInput)
         .mutation(async ({ ctx, input }) => {
