@@ -1,13 +1,16 @@
 import { z } from "zod";
+import { useTranslation } from "react-i18next";
+
+const { t } = useTranslation();
 
 export const addSourceInput = z.object({
     slug: z.string()
-        .min(1, "Name is required")
-        .max(30, "Name must be 30 characters or less"),
+        .min(1, t("validation.source.nameRequired"))
+        .max(30, t("validation.source.nameTooLong", { max: 30 })),
     url: z.string()
-        .url("Please enter a valid URL")
-        .max(100, "URL must be 100 characters or less"),
+        .url(t("validation.source.urlInvalid"))
+        .max(100, t("validation.source.urlTooLong", { max: 100 })),
 });
 
 export const removeSourceInput = z.string()
-    .length(36);
+    .length(36, t("validation.source.idInvalid"));

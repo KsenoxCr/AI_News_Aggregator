@@ -1,0 +1,24 @@
+{
+  "validation": {
+    "agent": {
+      "nameRequired": "Name is required",
+      "nameTooLong": "Name must be {{max}} characters or less",
+      "urlInvalid": "Please enter a valid URL",
+      "urlTooLong": "URL must be {{max}} characters or less",
+      "apiKeyRequired": "API key is required",
+      "apiKeyTooLong": "API key must be {{max}} characters or less",
+      "idInvalid": "Invalid agent ID"
+    },
+    "source": {
+      "nameRequired": "Name is required",
+      "nameTooLong": "Name must be {{max}} characters or less",
+      "urlInvalid": "Please enter a valid URL",
+      "urlTooLong": "URL must be {{max}} characters or less",
+      "idInvalid": "Invalid source ID"
+    },
+    "user": {
+      "preferencesEmpty": "Preferences cannot be empty",
+      "preferencesTooLong": "Preferences must be {{max}} characters or less"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "validation": {
+    "agent": {
+      "nameRequired": "Nimi vaaditaan",
+      "nameTooLong": "Nimi saa olla enintään {{max}} merkkiä pitkä",
+      "urlInvalid": "Kirjoita kelvollinen URL-osoite",
+      "urlTooLong": "URL-osoite saa olla enintään {{max}} merkkiä pitkä",
+      "apiKeyRequired": "API-avain vaaditaan",
+      "apiKeyTooLong": "API-avain saa olla enintään {{max}} merkkiä pitkä",
+      "idInvalid": "Virheellinen agentin tunnus"
+    },
+    "source": {
+      "nameRequired": "Nimi vaaditaan",
+      "nameTooLong": "Nimi saa olla enintään {{max}} merkkiä pitkä",
+      "urlInvalid": "Kirjoita kelvollinen URL-osoite",
+      "urlTooLong": "URL-osoite saa olla enintään {{max}} merkkiä pitkä",
+      "idInvalid": "Virheellinen lähteen tunnus"
+    },
+    "user": {
+      "preferencesEmpty": "Mieltymykset eivät voi olla tyhjät",
+      "preferencesTooLong": "Mieltymykset saavat olla enintään {{max}} merkkiä pitkät"
+    }
+  }
+}
