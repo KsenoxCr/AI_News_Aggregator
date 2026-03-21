@@ -3,19 +3,7 @@ import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db/db";
 import { IsDuplicateEntry, TestOAIAPI } from "~/server/lib/util";
 import { MAX } from '~/config/business'
-
-const addAgentInput = z.object({
-    slug: z.string().min(1).max(30),
-    url: z.string().url().max(100),
-    api_key: z.string().min(1).max(256),
-});
-
-const modifyAgentInput = z.object({
-    id: z.string().length(36),
-    slug: z.string().min(1).max(30).optional(),
-    url: z.string().url().max(100).optional(),
-    api_key: z.string().min(1).max(256).optional(),
-});
+import { addAgentInput, modifyAgentInput } from "~/lib/validators/agent";
 
 export const agentRouter = createTRPCRouter({
     getAgents: protectedProcedure

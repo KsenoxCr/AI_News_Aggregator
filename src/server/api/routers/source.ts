@@ -3,13 +3,7 @@ import { MAX } from "~/config/business";
 import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db/db";
 import { IsDuplicateEntry } from "~/server/lib/util";
-
-const addSourceInput = z.object({
-    slug: z.string().min(1).max(30),
-    url: z.string().url().max(100),
-});
-
-const removeSourceInput = z.string().length(36);
+import { addSourceInput, removeSourceInput } from "~/lib/validators/source";
 
 export const sourceRouter = createTRPCRouter({
     getSources: protectedProcedure
