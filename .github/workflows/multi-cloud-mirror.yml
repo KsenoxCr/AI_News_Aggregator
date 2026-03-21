@@ -1,0 +1,82 @@
+name: Multi-Cloud Mirror
+
+on:
+  push:
+    branches: ["**"]
+  workflow_dispatch:
+  delete:
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup SSH (GitLab + Codeberg)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          # Keys
+          echo "${{ secrets.GL_SSH_KEY }}" > ~/.ssh/id_gitlab
+          chmod 600 ~/.ssh/id_gitlab
+          echo "${{ secrets.CB_SSH_KEY }}" > ~/.ssh/id_codeberg
+          chmod 600 ~/.ssh/id_codeberg
+
+          # Known hosts (MITM guard)
+          ssh-keyscan -H gitlab.com >> ~/.ssh/known_hosts
+          ssh-keyscan -H codeberg.org >> ~/.ssh/known_hosts
+
+          chmod 600 ~/.ssh/known_hosts
+
+          # Force host->key mapping
+          cat >> ~/.ssh/config <<'EOF'
+          Host gitlab.com
+            HostName gitlab.com
+            User git
+            IdentityFile ~/.ssh/id_gitlab
+            IdentitiesOnly yes
+          Host codeberg.org
+            HostName codeberg.org
+            User git
+            IdentityFile ~/.ssh/id_codeberg
+            IdentitiesOnly yes
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Mirror to Remotes
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPO_NAME="${{ github.event.repository.name }}"
+          GL_URL="git@gitlab.com:${{ secrets.GL_USERNAME }}/${REPO_NAME}.git"
+          CB_URL="git@codeberg.org:${{ secrets.CB_USERNAME }}/${REPO_NAME}.git"
+
+          # Add or update remotes (idempotent)
+          if git remote get-url gitlab >/dev/null 2>&1; then
+            git remote set-url gitlab "$GL_URL"
+          else
+            git remote add gitlab "$GL_URL"
+          fi
+
+          if git remote get-url codeberg >/dev/null 2>&1; then
+            git remote set-url codeberg "$CB_URL"
+          else
+            git remote add codeberg "$CB_URL"
+          fi
+
+          echo "Pushing to GitLab..."
+          git push gitlab --prune "+refs/remotes/origin/*:refs/heads/*" "+refs/tags/*:refs/tags/*"
+
+          echo "Pushing to Codeberg..."
+          git push codeberg --prune "+refs/remotes/origin/*:refs/heads/*" "+refs/tags/*:refs/tags/*"
+
