@@ -19,6 +19,10 @@
     "user": {
       "preferencesEmpty": "Mieltymykset eivät voi olla tyhjät",
       "preferencesTooLong": "Mieltymykset saavat olla enintään {{max}} merkkiä pitkät"
+    },
+    "category": {
+      "slugRequired": "Kategoria vaaditaan",
+      "slugTooLong": "Kategorian tunniste saa olla enintään {{max}} merkkiä pitkä"
     }
   }
 }

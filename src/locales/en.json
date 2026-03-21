@@ -19,6 +19,10 @@
     "user": {
       "preferencesEmpty": "Preferences cannot be empty",
       "preferencesTooLong": "Preferences must be {{max}} characters or less"
+    },
+    "category": {
+      "slugRequired": "Category is required",
+      "slugTooLong": "Category slug must be {{max}} characters or less"
     }
   }
 }
