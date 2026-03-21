@@ -8,7 +8,38 @@ import { AUTH } from "~/config/business";
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 export const auth = betterAuth({
+    plugins: [
+        magicLink({
+            sendMagicLink: async ({ email, url }) => {
+                await resend.emails.send({
+                    from: process.env.COMPANY_EMAIL!,
+                    to: email,
+                    subject: "Sign in",
+                    react: MagicLinkEmail({ url, "magicLink" }),
+                })
+            },
+            expiresIn: AUTH.magicLinkExpiresIn
+        }),
+    ],
     user: {
+        changeEmail: {
+            enabled: true,
+            sendChangeEmailConfirmation: async ({ user, newEmail, url }) => {
+                await resend.emails.send({
+                    from: process.env.COMPANY_EMAIL!,
+                    to: newEmail,
+                    subject: "Confirm email change",
+                    react: MagicLinkEmail({ url, "changeEmail" }),
+                })
+
+                await resend.emails.send({
+                    from: process.env.COMPANY_EMAIL!,
+                    to: user.email,
+                    subject: "Your email address was changed",
+                    react: MagicLinkEmail({ url, "notifyChange" }),
+                })
+            },
+        },
         fields: {
             createdAt: "created_at",
             updatedAt: "updated_at",
@@ -74,19 +105,6 @@ export const auth = betterAuth({
             },
         },
     },
-    plugins: [
-        magicLink({
-            sendMagicLink: async ({ email, url }) => {
-                await resend.emails.send({
-                    from: process.env.COMPANY_EMAIL!,
-                    to: email,
-                    subject: "Sign in",
-                    react: MagicLinkEmail({ url }),
-                })
-            },
-            expiresIn: AUTH.magicLinkExpiresIn
-        }),
-    ],
     databaseHooks: {
         session: {
             create: {
