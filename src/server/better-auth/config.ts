@@ -4,6 +4,8 @@ import { Resend } from "resend";
 import { MagicLinkEmail } from "~/emails/magic-link"
 import { db } from "../db/db";
 import { AUTH } from "~/config/business";
+import { ChangeEmailEmail } from "~/emails/email-change";
+import { NotifyChangeEmail } from "~/emails/notify-change";
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -15,7 +17,7 @@ export const auth = betterAuth({
                     from: process.env.COMPANY_EMAIL!,
                     to: email,
                     subject: "Sign in",
-                    react: MagicLinkEmail({ url, "magicLink" }),
+                    react: MagicLinkEmail({ url }),
                 })
             },
             expiresIn: AUTH.magicLinkExpiresIn
@@ -29,14 +31,14 @@ export const auth = betterAuth({
                     from: process.env.COMPANY_EMAIL!,
                     to: newEmail,
                     subject: "Confirm email change",
-                    react: MagicLinkEmail({ url, "changeEmail" }),
+                    react: ChangeEmailEmail({ url }),
                 })
 
                 await resend.emails.send({
                     from: process.env.COMPANY_EMAIL!,
                     to: user.email,
                     subject: "Your email address was changed",
-                    react: MagicLinkEmail({ url, "notifyChange" }),
+                    react: NotifyChangeEmail({ url }),
                 })
             },
         },
