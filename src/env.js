@@ -9,10 +9,10 @@ export const env = createEnv({
     server: {
         DB_HOST: z.string(),
         DB_NAME: z.string(),
-        DB_PORT: z.number().min(1).max(9999),
+        DB_PORT: z.string(),
         DB_USERNAME: z.string(),
         DB_PASSWORD: z.string(),
-        BETTER_AUTH_SECRET: z.string().length(32),
+        BETTER_AUTH_SECRET: z.string(),
         COMPANY_EMAIL: z.string().email(),
         RESEND_API_KEY: z.string(),
         NODE_ENV: z
