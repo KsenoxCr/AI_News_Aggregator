@@ -46,6 +46,7 @@
     "@dbml/cli": "^6.4.0",
     "@softwaretechnik/dbml-renderer": "^1.0.31",
     "@tailwindcss/postcss": "^4.0.15",
+    "@tanstack/react-query-devtools": "^5.91.3",
     "@types/node": "^20.14.10",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
