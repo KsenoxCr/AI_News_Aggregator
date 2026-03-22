@@ -3,13 +3,15 @@ import { magicLink } from "better-auth/plugins";
 import { Resend } from "resend";
 import { MagicLinkEmail } from "~/emails/magic-link"
 import { db } from "../db/db";
-import { AUTH } from "~/config/business";
+import { AUTH, BRAND } from "~/config/business";
 import { ChangeEmailEmail } from "~/emails/email-change";
 import { NotifyChangeEmail } from "~/emails/notify-change";
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
 export const auth = betterAuth({
+    appName: BRAND.appName,
+    baseURL: process.env.NEXT_PUBLIC_APP_URL,
     plugins: [
         magicLink({
             sendMagicLink: async ({ email, url }) => {
