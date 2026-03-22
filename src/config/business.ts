@@ -1,3 +1,7 @@
+export const BRAND = {
+    appName: "News Aggr"
+}
+
 export const AUTH = {
     magicLinkExpiresIn: 60 * 5,       // 5min
     sessionExpiresIn: 60 * 60 * 24 * 7, // 7d
