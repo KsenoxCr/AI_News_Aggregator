@@ -3,7 +3,8 @@ CREATE TABLE users (
     email       VARCHAR(255) NOT NULL UNIQUE,
     role        VARCHAR(5)   NOT NULL DEFAULT 'user',
     preferences TEXT,
-    language    VARCHAR(10)  DEFAULT 'en',
+    locale      VARCHAR(10)  DEFAULT 'en',
+    news_language   VARCHAR(10)  DEFAULT 'en',
     selected_agent VARCHAR(36) REFERENCES users(id) ON DELETE CASCADE,
     created_at  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
