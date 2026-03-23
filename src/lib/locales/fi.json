@@ -24,5 +24,20 @@
       "slugRequired": "Kategoria vaaditaan",
       "slugTooLong": "Kategorian tunniste saa olla enintään {{max}} merkkiä pitkä"
     }
+  },
+  "errors": {
+    "conflicts": {
+      "agentNameExists": "Nimi on jo käytössä",
+      "agentUrlExists": "URL-osoite on jo käytössä",
+      "sourceNameExists": "Nimi on jo käytössä",
+      "sourceUrlExists": "URL-osoite on jo käytössä",
+      "categoryExists": "Kategoria on jo olemassa"
+    },
+    "api": {
+      "invalidApiKey": "Virheellinen API-avain",
+      "insufficientPermissions": "API-avaimella ei ole vaadittavia oikeuksia",
+      "serverError": "OpenAI-palvelun virhe",
+      "serviceUnavailable": "OpenAI-palvelu ei ole saatavilla"
+    }
   }
 }

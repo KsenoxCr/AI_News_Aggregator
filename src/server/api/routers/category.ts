@@ -88,7 +88,7 @@ export const categoryRouter = createTRPCRouter({
                     return {
                         status: "failure",
                         errorCode: "CONFLICT",
-                        error: "Category already exists",
+                        error: ctx.t('errors.conflicts.categoryExists'),
                     };
                 }
 

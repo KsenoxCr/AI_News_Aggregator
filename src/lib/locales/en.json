@@ -24,5 +24,20 @@
       "slugRequired": "Category is required",
       "slugTooLong": "Category slug must be {{max}} characters or less"
     }
+  },
+  "errors": {
+    "conflicts": {
+      "agentNameExists": "Name already in use",
+      "agentUrlExists": "URL already in use",
+      "sourceNameExists": "Name already in use",
+      "sourceUrlExists": "URL already in use",
+      "categoryExists": "Category already exists"
+    },
+    "api": {
+      "invalidApiKey": "Invalid API key",
+      "insufficientPermissions": "API key does not have required permissions",
+      "serverError": "OpenAI service error",
+      "serviceUnavailable": "OpenAI service unavailable"
+    }
   }
 }

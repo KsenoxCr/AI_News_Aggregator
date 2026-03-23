@@ -5,8 +5,6 @@ import { IsDuplicateEntry, TestOAIAPI } from "~/server/lib/util";
 import { MAX } from '~/config/business'
 import { AddAgentSchemaFactory, ModifyAgentSchemaFactory } from "~/lib/validators/agent";
 
-// TODO: Conflict errors translations
-
 export const agentRouter = createTRPCRouter({
     getAgents: protectedProcedure
         .query(async ({ ctx }) => {
@@ -47,19 +45,19 @@ export const agentRouter = createTRPCRouter({
                 switch (res.status) {
                     case 401:
                         errorCode = "UNAUTHORIZED";
-                        error = "Invalid API key";
+                        error = ctx.t('errors.api.invalidApiKey');
                         break;
                     case 403:
                         errorCode = "FORBIDDEN";
-                        error = "API key does not have required permissions";
+                        error = ctx.t('errors.api.insufficientPermissions');
                         break;
                     case 500:
                         errorCode = "SERVER_ERROR";
-                        error = "OpenAI service error";
+                        error = ctx.t('errors.api.serverError');
                         break;
                     case 503:
                         errorCode = "SERVICE_UNAVAILABLE";
-                        error = "OpenAI service unavailable";
+                        error = ctx.t('errors.api.serviceUnavailable');
                         break;
                     default:
                         errorCode = res.status;
@@ -85,12 +83,12 @@ export const agentRouter = createTRPCRouter({
 
                 if (IsDuplicateEntry(err, "slug")) {
                     errorCode = "CONFLICT"
-                    error = "Name already in use"
+                    error = ctx.t('errors.conflicts.agentNameExists')
                 }
 
                 if (IsDuplicateEntry(err, "url")) {
                     errorCode = "CONFLICT"
-                    error = "URL already in use"
+                    error = ctx.t('errors.conflicts.agentUrlExists')
                 }
 
                 return {
@@ -139,12 +137,12 @@ export const agentRouter = createTRPCRouter({
 
                 if (IsDuplicateEntry(err, "slug")) {
                     errorCode = "CONFLICT"
-                    error = "Name already in use"
+                    error = ctx.t('errors.conflicts.agentNameExists')
                 }
 
                 if (IsDuplicateEntry(err, "url")) {
                     errorCode = "CONFLICT"
-                    error = "URL already in use"
+                    error = ctx.t('errors.conflicts.agentUrlExists')
                 }
 
                 return {
