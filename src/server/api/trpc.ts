@@ -102,7 +102,7 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
 
 
 const translationMiddleware = t.middleware(async ({ next, ctx }) => {
-    const t = await getTranslations()
+    const t = await getTranslations({ locale: ctx.session!.user.locale })
     return next({ ctx: { ...ctx, t } })
 })
 
