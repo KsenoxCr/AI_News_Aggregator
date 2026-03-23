@@ -47,11 +47,22 @@ export const auth = betterAuth({
         fields: {
             createdAt: "created_at",
             updatedAt: "updated_at",
+            newsLanguage: "news_language"
         },
         additionalFields: {
             role: {
                 type: "string",
                 defaultValue: "user",
+                input: false
+            },
+            locale: {
+                type: "string",
+                defaultValue: "en",
+                input: false
+            },
+            newsLanguage: {
+                type: "string",
+                defaultValue: "en",
                 input: false
             }
         }
