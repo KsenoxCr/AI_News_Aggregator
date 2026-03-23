@@ -1,6 +1,7 @@
-import { createTRPCRouter, adminProcedure, protectedProcedure } from "~/server/api/trpc";
+import { z } from "zod";
+import { createTRPCRouter, adminProcedure, protectedProcedure, protectedTranslatedProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db/db";
-import { categoryInput } from "~/lib/validators/category";
+import { CategorySchemaFactory } from "~/lib/validators/category";
 import { IsDuplicateEntry } from "~/server/lib/util";
 
 export const categoryRouter = createTRPCRouter({
@@ -28,27 +29,33 @@ export const categoryRouter = createTRPCRouter({
                 categories: categoriesHash,
             };
         }),
-    selectCategory: protectedProcedure
-        .input(categoryInput)
+    selectCategory: protectedTranslatedProcedure
+        .input(z.unknown())
         .mutation(async ({ ctx, input }) => {
+            const schema = CategorySchemaFactory(ctx.t)
+            const validated = schema.parse(input)
+
             await db
                 .insertInto("user_categories")
                 .values({
                     user_id: ctx.session.user.id,
-                    category: input,
+                    category: validated,
                 })
                 .onConflict((oc) => oc.doNothing())
                 .execute();
 
             return { status: "success" };
         }),
-    deselectCategory: protectedProcedure
-        .input(categoryInput)
+    deselectCategory: protectedTranslatedProcedure
+        .input(z.unknown())
         .mutation(async ({ ctx, input }) => {
+            const schema = CategorySchemaFactory(ctx.t)
+            const validated = schema.parse(input)
+
             const result = await db
                 .deleteFrom("user_categories")
                 .where("user_id", "=", ctx.session.user.id)
-                .where("category", "=", input)
+                .where("category", "=", validated)
                 .execute();
 
             if (result[0]!.numDeletedRows === 0n) {
@@ -62,13 +69,16 @@ export const categoryRouter = createTRPCRouter({
             return { status: "success" };
         }),
     addCategory: adminProcedure
-        .input(categoryInput)
-        .mutation(async ({ input }) => {
+        .input(z.unknown())
+        .mutation(async ({ ctx, input }) => {
+            const schema = CategorySchemaFactory(ctx.t)
+            const validated = schema.parse(input)
+
             try {
                 await db
                     .insertInto("categories")
                     .values({
-                        slug: input,
+                        slug: validated,
                     })
                     .execute();
 
@@ -90,11 +100,14 @@ export const categoryRouter = createTRPCRouter({
             }
         }),
     removeCategory: adminProcedure
-        .input(categoryInput)
-        .mutation(async ({ input }) => {
+        .input(z.unknown())
+        .mutation(async ({ ctx, input }) => {
+            const schema = CategorySchemaFactory(ctx.t)
+            const validated = schema.parse(input)
+
             const result = await db
                 .deleteFrom("categories")
-                .where("slug", "=", input)
+                .where("slug", "=", validated)
                 .execute();
 
             if (result[0]!.numDeletedRows === 0n) {

@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { MAX } from "~/config/business";
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure, protectedTranslatedProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db/db";
 import { IsDuplicateEntry } from "~/server/lib/util";
-import { addSourceInput, removeSourceInput } from "~/lib/validators/source";
+import { AddSourceSchemaFactory, RemoveSourceSchemaFactory } from "~/lib/validators/source";
 
 export const sourceRouter = createTRPCRouter({
     getSources: protectedProcedure
@@ -18,9 +18,12 @@ export const sourceRouter = createTRPCRouter({
                 sources
             }
         }),
-    addSource: protectedProcedure
-        .input(addSourceInput)
+    addSource: protectedTranslatedProcedure
+        .input(z.unknown())
         .mutation(async ({ ctx, input }) => {
+            const schema = AddSourceSchemaFactory(ctx.t)
+            const validated = schema.parse(input)
+
             const existingSources = await db
                 .selectFrom('sources')
                 .select(db.fn.count('id').as('count'))
@@ -42,8 +45,8 @@ export const sourceRouter = createTRPCRouter({
                     .insertInto('sources')
                     .values({
                         id: sourceId,
-                        slug: input.slug,
-                        url: input.url,
+                        slug: validated.slug,
+                        url: validated.url,
                         user_id: ctx.session.user.id,
                     })
                     .execute();
@@ -69,12 +72,15 @@ export const sourceRouter = createTRPCRouter({
 
             return { status: "success", id: sourceId };
         }),
-    removeSource: protectedProcedure
-        .input(removeSourceInput)
+    removeSource: protectedTranslatedProcedure
+        .input(z.unknown())
         .mutation(async ({ ctx, input }) => {
+            const schema = RemoveSourceSchemaFactory(ctx.t)
+            const validated = schema.parse(input)
+
             const result = await db
                 .deleteFrom('sources')
-                .where('id', '=', input)
+                .where('id', '=', validated)
                 .where('user_id', '=', ctx.session.user.id)
                 .execute();
 

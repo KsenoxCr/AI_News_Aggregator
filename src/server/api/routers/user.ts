@@ -1,6 +1,7 @@
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { z } from "zod";
+import { createTRPCRouter, protectedProcedure, protectedTranslatedProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db/db";
-import { changeLanguageInput, editPreferencesInput } from "~/lib/validators/user";
+import { changeLanguageSchema, EditPreferencesSchemaFactory } from "~/lib/validators/user";
 
 export const userRouter = createTRPCRouter({
     getDetails: protectedProcedure
@@ -16,12 +17,15 @@ export const userRouter = createTRPCRouter({
                 ...user
             }
         }),
-    editPreferences: protectedProcedure
-        .input(editPreferencesInput)
+    editPreferences: protectedTranslatedProcedure
+        .input(z.unknown())
         .mutation(async ({ ctx, input }) => {
+            const schema = EditPreferencesSchemaFactory(ctx.t)
+            const validated = schema.parse(input)
+
             await db
                 .updateTable('users')
-                .set({ "preferences": input })
+                .set({ "preferences": validated })
                 .where('id', '=', ctx.session.user.id)
                 .executeTakeFirstOrThrow()
 
@@ -29,12 +33,15 @@ export const userRouter = createTRPCRouter({
                 status: "success"
             }
         }),
-    changeLanguage: protectedProcedure
-        .input(changeLanguageInput)
+    changeLanguage: protectedTranslatedProcedure
+        .input(z.unknown())
         .mutation(async ({ ctx, input }) => {
+            const schema = changeLanguageSchema
+            const validated = schema.parse(input)
+
             await db
                 .updateTable('users')
-                .set({ "language": input })
+                .set({ "language": validated })
                 .where('id', '=', ctx.session.user.id)
                 .executeTakeFirstOrThrow()
 

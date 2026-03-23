@@ -7,6 +7,7 @@
  * need to use are documented accordingly near the end.
  */
 import { initTRPC, TRPCError } from "@trpc/server";
+import { getTranslations } from "next-intl/server";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
@@ -99,6 +100,41 @@ const timingMiddleware = t.middleware(async ({ next, path }) => {
     return result;
 });
 
+
+const translationMiddleware = t.middleware(async ({ next, ctx }) => {
+    const t = await getTranslations()
+    return next({ ctx: { ...ctx, t } })
+})
+
+
+const authMiddleware = t.middleware(({ next, ctx }) => {
+    if (!ctx.session?.user) {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+
+    return next({
+        ctx: {
+            // infers the `session` as non-nullable
+            session: { ...ctx.session, user: ctx.session.user },
+        },
+    });
+})
+
+
+const adminAuthMiddleware = t.middleware(({ next, ctx }) => {
+    if (!ctx.session?.user && ctx.session?.user.role !== "admin") {
+        throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+
+    return next({
+        ctx: {
+            // infers the `session` as non-nullable
+            session: { ...ctx.session, user: ctx.session.user },
+        },
+    });
+})
+
+
 /**
  * Public (unauthenticated) procedure
  *
@@ -118,28 +154,14 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
  */
 export const protectedProcedure = t.procedure
     .use(timingMiddleware)
-    .use(({ ctx, next }) => {
-        if (!ctx.session?.user) {
-            throw new TRPCError({ code: "UNAUTHORIZED" });
-        }
-        return next({
-            ctx: {
-                // infers the `session` as non-nullable
-                session: { ...ctx.session, user: ctx.session.user },
-            },
-        });
-    });
+    .use(authMiddleware);
+
+export const protectedTranslatedProcedure = t.procedure
+    .use(timingMiddleware)
+    .use(translationMiddleware)
+    .use(authMiddleware);
 
 export const adminProcedure = t.procedure
     .use(timingMiddleware)
-    .use(({ ctx, next }) => {
-        if (!ctx.session?.user && ctx.session?.user.role !== "admin") {
-            throw new TRPCError({ code: "UNAUTHORIZED" });
-        }
-
-        return next({
-            ctx: {
-                session: { ...ctx.session, user: ctx.session.user },
-            },
-        });
-    });
+    .use(translationMiddleware)
+    .use(adminAuthMiddleware);

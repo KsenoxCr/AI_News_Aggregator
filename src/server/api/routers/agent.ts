@@ -1,9 +1,11 @@
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, protectedProcedure, protectedTranslatedProcedure } from "~/server/api/trpc";
 import { db } from "~/server/db/db";
 import { IsDuplicateEntry, TestOAIAPI } from "~/server/lib/util";
 import { MAX } from '~/config/business'
-import { addAgentInput, modifyAgentInput } from "~/lib/validators/agent";
+import { AddAgentSchemaFactory, ModifyAgentSchemaFactory } from "~/lib/validators/agent";
+
+// TODO: Conflict errors translations
 
 export const agentRouter = createTRPCRouter({
     getAgents: protectedProcedure
@@ -18,13 +20,16 @@ export const agentRouter = createTRPCRouter({
                 agents
             }
         }),
-    addAgent: protectedProcedure
-        .input(addAgentInput)
+    addAgent: protectedTranslatedProcedure
+        .input(z.unknown())
         .mutation(async ({ ctx, input }) => {
+            const schema = AddAgentSchemaFactory(ctx.t)
+            const validated = schema.parse(input)
+
             const existingAgents = await db
                 .selectFrom('agents')
                 .select(db.fn.count('id').as('count'))
-                .where('user_id', '=', ctx.session.user.id)
+                .where('user_id', '=', ctx.session!.user.id)
                 .executeTakeFirst();
 
             if (Number((existingAgents!.count ?? 0)) >= MAX.agents) {
@@ -33,7 +38,7 @@ export const agentRouter = createTRPCRouter({
 
             const agentId = crypto.randomUUID()
 
-            const res = await TestOAIAPI(input.url, input.api_key)
+            const res = await TestOAIAPI(validated.url, validated.api_key)
 
             if (res.error) {
                 let errorCode: string | number = res.status;
@@ -69,10 +74,10 @@ export const agentRouter = createTRPCRouter({
                     .insertInto('agents')
                     .values({
                         id: agentId,
-                        slug: input.slug,
-                        url: input.url,
-                        api_key: input.api_key,
-                        user_id: ctx.session.user.id,
+                        slug: validated.slug,
+                        url: validated.url,
+                        api_key: validated.api_key,
+                        user_id: ctx.session!.user.id,
                     })
                     .execute();
             } catch (err: any) {
@@ -103,7 +108,7 @@ export const agentRouter = createTRPCRouter({
             const result = await db
                 .deleteFrom('agents')
                 .where('id', '=', input)
-                .where('user_id', '=', ctx.session.user.id)
+                .where('user_id', '=', ctx.session!.user.id)
                 .execute();
 
             if (result[0]!.numDeletedRows === 0n) {
@@ -112,11 +117,13 @@ export const agentRouter = createTRPCRouter({
 
             return { status: "success" };
         }),
-
-    modifyAgent: protectedProcedure
-        .input(modifyAgentInput)
+    modifyAgent: protectedTranslatedProcedure
+        .input(z.unknown())
         .mutation(async ({ ctx, input }) => {
-            const { id, ...updates } = input;
+            const schema = ModifyAgentSchemaFactory(ctx.t)
+            const validated = schema.parse(input)
+
+            const { id, ...updates } = validated;
 
             let result = []
 
@@ -125,7 +132,7 @@ export const agentRouter = createTRPCRouter({
                     .updateTable('agents')
                     .set(updates)
                     .where('id', '=', id)
-                    .where('user_id', '=', ctx.session.user.id)
+                    .where('user_id', '=', ctx.session!.user.id)
                     .execute();
             } catch (err: any) {
                 let errorCode, error = null
@@ -153,7 +160,6 @@ export const agentRouter = createTRPCRouter({
 
             return { status: "success" };
         }),
-
     selectAgent: protectedProcedure
         .input(z.string().length(36))
         .query(async ({ ctx, input }) => {
