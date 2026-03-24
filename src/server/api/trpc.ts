@@ -25,15 +25,20 @@ import { auth } from "~/server/better-auth";
  *
  * @see https://trpc.io/docs/server/context
  */
+
+
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-    const session = await auth.api.getSession({
-        headers: opts.headers,
-    });
+    const session = await auth.api.getSession({ headers: opts.headers })
+    return createInnerTRPCContext({ session, headers: opts.headers })
+}
+
+
+export const createInnerTRPCContext = (opts: { session: Awaited<ReturnType<typeof auth.api.getSession>>; headers?: Headers }) => {
     return {
-        session,
-        ...opts,
-    };
-};
+        session: opts.session,
+        headers: opts.headers,
+    }
+}
 
 /**
  * 2. INITIALIZATION
