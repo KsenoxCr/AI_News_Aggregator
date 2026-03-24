@@ -5,8 +5,12 @@ DROP TABLE IF EXISTS
   magic_link_tokens,
   news_digests,
   sessions,
+  categories,
+  digest_categories,
   user_categories,
   user_preferences,
+  sources,
+  agents,
   users;
 
 SET FOREIGN_KEY_CHECKS = 1;
