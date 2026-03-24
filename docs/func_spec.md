@@ -31,5 +31,3 @@ News Headers List
 Article modal
     -> Read AI summary
     -> Open original article (publisher's website)
-
-
