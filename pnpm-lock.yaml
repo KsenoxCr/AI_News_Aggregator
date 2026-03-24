@@ -105,9 +105,6 @@ importers:
       tailwindcss:
         specifier: ^4.0.15
         version: 4.2.2
-      trpc-cli:
-        specifier: ^0.14.0
-        version: 0.14.0(@trpc/server@11.13.4(typescript@5.9.3))(zod@3.25.76)
       tsx:
         specifier: ^4.21.0
         version: 4.21.0
@@ -2131,10 +2128,6 @@ packages:
     resolution: {integrity: sha512-yPVavfyCcRhmorC7rWlkHn15b4wDVgVmBA7kV4QVBsF7kv/9TKJAbAXVTxvTnwP8HHKjRCJDClKbciiYS7p0DQ==}
     engines: {node: '>=16'}
 
-  commander@14.0.3:
-    resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
-    engines: {node: '>=20'}
-
   commander@2.20.3:
     resolution: {integrity: sha512-GpVkmM8vF2vQUkj2LvZmD35JxeJOLCwJ9cUkugyk2nuhbv3+mJvpLYYt+0+USMxE+oj+ey/lJEnhZw75x/OMcQ==}
 
@@ -3529,31 +3522,6 @@ packages:
   triple-beam@1.4.1:
     resolution: {integrity: sha512-aZbgViZrg1QNcG+LULa7nhZpJTZSLm/mXnHXnbAbjmN5aSa0y7V+wvv6+4WaBtpISJzThKy+PIPxc1Nq1EJ9mg==}
     engines: {node: '>= 14.0.0'}
-
-  trpc-cli@0.14.0:
-    resolution: {integrity: sha512-Ibin1oLB6gGWfx/YfzbS+GYy3t2RbMUm+qUal8VYtGMt5kpwL6FteMNz1Mk9x7w0jB72xGxQm4B5VWtnO/Nihw==}
-    engines: {node: '>=18'}
-    hasBin: true
-    peerDependencies:
-      '@orpc/server': ^1.0.0
-      '@trpc/server': ^10.45.2 || ^11.0.1
-      '@valibot/to-json-schema': ^1.1.0
-      effect: ^3.14.2 || ^4.0.0
-      valibot: ^1.1.0
-      zod: ^3.24.0 || ^4.0.0
-    peerDependenciesMeta:
-      '@orpc/server':
-        optional: true
-      '@trpc/server':
-        optional: true
-      '@valibot/to-json-schema':
-        optional: true
-      effect:
-        optional: true
-      valibot:
-        optional: true
-      zod:
-        optional: true
 
   tsconfck@3.1.6:
     resolution: {integrity: sha512-ks6Vjr/jEw0P1gmOVwutM3B7fWxoWBL2KRDb1JfqGVawBmO5UsvmWOQFGHBPl5yxYz4eERr19E6L7NMv+Fej4w==}
@@ -6007,8 +5975,6 @@ snapshots:
 
   commander@11.1.0: {}
 
-  commander@14.0.3: {}
-
   commander@2.20.3: {}
 
   commander@5.1.0: {}
@@ -7402,13 +7368,6 @@ snapshots:
       punycode: 2.3.1
 
   triple-beam@1.4.1: {}
-
-  trpc-cli@0.14.0(@trpc/server@11.13.4(typescript@5.9.3))(zod@3.25.76):
-    dependencies:
-      commander: 14.0.3
-    optionalDependencies:
-      '@trpc/server': 11.13.4(typescript@5.9.3)
-      zod: 3.25.76
 
   tsconfck@3.1.6(typescript@5.9.3):
     optionalDependencies:
