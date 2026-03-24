@@ -19,7 +19,8 @@
     "db:migrate": "kysely migrate latest",
     "db:rollback": "kysely migrate rollback --all",
     "db:make": "kysely migrate make",
-    "db:status": "kysely migrate list"
+    "db:status": "kysely migrate list",
+    "db:migrate-codegen": "./scripts/migration_with_codegen.sh"
   },
   "dependencies": {
     "@react-email/components": "^1.0.9",
