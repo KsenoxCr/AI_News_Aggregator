@@ -52,6 +52,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.2.5",
     "@dbml/cli": "^6.4.0",
+    "@fsouza/prettierd": "^0.27.0",
     "@softwaretechnik/dbml-renderer": "^1.0.31",
     "@tailwindcss/postcss": "^4.0.15",
     "@tanstack/react-query-devtools": "^5.91.3",
@@ -61,7 +62,7 @@
     "kysely-codegen": "^0.20.0",
     "kysely-ctl": "^0.20.0",
     "postcss": "^8.5.3",
-    "prettier": "^3.8.1",
+    "prettier-plugin-tailwindcss": "^0.7.2",
     "sql-lint": "^1.0.2",
     "tailwindcss": "^4.0.15",
     "tsx": "^4.21.0",
