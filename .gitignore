@@ -6,6 +6,10 @@ node_modules
 # testing
 coverage
 
+# lock files
+
+.~lock*
+
 # next.js
 .next/
 out/
