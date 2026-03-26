@@ -38,13 +38,14 @@ export interface DigestSources {
 
 export interface MagicLinkTokens {
   created_at: Generated<Date>;
-  email: string;
   expires_at: Date;
   id: string;
   ip_address: string | null;
   token_hash: string;
+  updated_at: Date;
   used: Generated<number>;
   used_at: Date | null;
+  value: string;
 }
 
 export interface NewsDigests {
@@ -59,16 +60,20 @@ export interface NewsDigests {
 }
 
 export interface Sessions {
+  created_at: Generated<Date>;
   expires_at: Date;
   id: string;
   ip_address: string | null;
   last_active_at: Date;
   session_type: Generated<string>;
+  token: string;
+  updated_at: Generated<Date>;
   user_agent: string | null;
   user_id: string;
 }
 
 export interface Sources {
+  enabled: Generated<number | null>;
   id: string;
   slug: string;
   url: string;
@@ -83,8 +88,12 @@ export interface UserCategories {
 export interface Users {
   created_at: Generated<Date>;
   email: string;
+  email_verified: Generated<number>;
   id: string;
-  language: Generated<string | null>;
+  image: string | null;
+  locale: Generated<string>;
+  name: string;
+  news_language: Generated<string>;
   preferences: string | null;
   role: Generated<string>;
   selected_agent: string | null;

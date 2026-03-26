@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { magicLink } from "better-auth/plugins";
 import { Resend } from "resend";
 import { MagicLinkEmail } from "~/emails/magic-link";
-import { db } from "../db/db";
+import { db, dialect } from "../db/db";
 import { AUTH, BRAND } from "~/config/business";
 import { ChangeEmailEmail } from "~/emails/email-change";
 import { NotifyChangeEmail } from "~/emails/notify-change";
@@ -12,6 +12,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export const auth = betterAuth({
   appName: BRAND.appName,
   baseURL: process.env.NEXT_PUBLIC_APP_URL,
+  database: dialect,
   plugins: [
     magicLink({
       sendMagicLink: async ({ email, url }) => {
@@ -44,10 +45,11 @@ export const auth = betterAuth({
         });
       },
     },
+    modelName: "users",
     fields: {
       createdAt: "created_at",
       updatedAt: "updated_at",
-      newsLanguage: "news_language",
+      emailVerified: "email_verified",
     },
     additionalFields: {
       role: {
@@ -60,7 +62,7 @@ export const auth = betterAuth({
         defaultValue: "en",
         input: false,
       },
-      newsLanguage: {
+      news_language: {
         type: "string",
         defaultValue: "en",
         input: false,
@@ -75,34 +77,35 @@ export const auth = betterAuth({
       maxAge: AUTH.sessionCacheMaxAge,
       strategy: "compact",
     },
+    modelName: "sessions",
     fields: {
       userId: "user_id",
       expiresAt: "expires_at",
       createdAt: "created_at",
-      sessionType: "session_type",
-      lastActiveAt: "last_active_at",
+      updatedAt: "updated_at",
+      ipAddress: "ip_address",
+      userAgent: "user_agent",
     },
     additionalFields: {
-      sessionType: {
+      session_type: {
         type: "string",
         defaultValue: "user",
         input: false,
       },
-      lastActiveAt: {
+      last_active_at: {
         type: "date",
         input: false,
+        defaultValue: () => new Date(),
       },
     },
   },
   verification: {
     modelName: "magic_link_tokens",
     fields: {
-      identifier: "email",
-      value: "token_hash",
-      expiresAt: "expires_at",
+      identifier: "token_hash",
       createdAt: "created_at",
-      usedAt: "used_at",
-      ipAddress: "ip_address",
+      expiresAt: "expires_at",
+      updatedAt: "updated_at",
     },
     additionalFields: {
       used: {
@@ -110,11 +113,11 @@ export const auth = betterAuth({
         defaultValue: false,
         input: false,
       },
-      usedAt: {
+      used_at: {
         type: "date",
         input: false,
       },
-      ipAddress: {
+      ip_address: {
         type: "string",
         input: false,
       },

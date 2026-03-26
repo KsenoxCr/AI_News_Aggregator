@@ -1,23 +1,29 @@
 CREATE TABLE users (
-    id          VARCHAR(36)  PRIMARY KEY,
-    email       VARCHAR(255) NOT NULL UNIQUE,
-    role        VARCHAR(5)   NOT NULL DEFAULT 'user',
-    preferences TEXT,
-    locale      VARCHAR(10)  NOT NULL DEFAULT 'en',
+    id              VARCHAR(36)  PRIMARY KEY,
+    name            VARCHAR(255) NOT NULL,
+    email           VARCHAR(255) NOT NULL UNIQUE,
+    email_verified  BOOLEAN      NOT NULL DEFAULT FALSE,
+    image           VARCHAR(2048),
+    role            VARCHAR(5)   NOT NULL DEFAULT 'user',
+    preferences     TEXT,
+    locale          VARCHAR(10)  NOT NULL DEFAULT 'en',
     news_language   VARCHAR(10)  NOT NULL DEFAULT 'en',
-    selected_agent VARCHAR(36) REFERENCES users(id) ON DELETE CASCADE,
-    created_at  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    selected_agent  VARCHAR(36) REFERENCES users(id) ON DELETE CASCADE,
+    created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE sessions (
     id              VARCHAR(36)  PRIMARY KEY,
     user_id         VARCHAR(36)  NOT NULL,
+    token           VARCHAR(255) NOT NULL UNIQUE,
     session_type    VARCHAR(5)   NOT NULL DEFAULT 'user',
-    expires_at      TIMESTAMP     NOT NULL,
-    last_active_at  TIMESTAMP     NOT NULL,
+    expires_at      TIMESTAMP    NOT NULL,
+    last_active_at  TIMESTAMP    NOT NULL,
     ip_address      VARCHAR(45),
     user_agent      TEXT,
+    created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_expires_at (expires_at),
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -25,12 +31,13 @@ CREATE TABLE sessions (
 CREATE TABLE magic_link_tokens (
     id          VARCHAR(36)   PRIMARY KEY,
     token_hash  VARCHAR(64)   NOT NULL UNIQUE,
-    email       VARCHAR(255)  NOT NULL,
-    expires_at  TIMESTAMP      NOT NULL,
+    value       VARCHAR(255)  NOT NULL,
     used        BOOLEAN       NOT NULL DEFAULT FALSE,
     used_at     TIMESTAMP,
     ip_address  VARCHAR(45),
-    created_at  TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at  TIMESTAMP      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at  TIMESTAMP      NOT NULL,
+    updated_at  TIMESTAMP      NOT NULL
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE agents (
