@@ -17,6 +17,8 @@
       "idInvalid": "Invalid source ID"
     },
     "user": {
+      "emailEmpty": "Email address is required",
+      "emailInvalid": "Please enter a valid email address",
       "preferencesEmpty": "Preferences cannot be empty",
       "preferencesTooLong": "Preferences must be {{max}} characters or less"
     },

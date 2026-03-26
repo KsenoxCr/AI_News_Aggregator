@@ -17,6 +17,8 @@
       "idInvalid": "Virheellinen lähteen tunnus"
     },
     "user": {
+      "emailEmpty": "Sähköpostiosoite vaaditaan",
+      "emailInvalid": "Kirjoita kelvollinen sähköpostiosoite",
       "preferencesEmpty": "Mieltymykset eivät voi olla tyhjät",
       "preferencesTooLong": "Mieltymykset saavat olla enintään {{max}} merkkiä pitkät"
     },
