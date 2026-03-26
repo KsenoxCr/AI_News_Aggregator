@@ -33,6 +33,7 @@ export default async function LocaleLayout({
     <html
       className={cn(geist.variable, "font-sans", figtree.variable)}
       lang={locale}
+      suppressHydrationWarning
     >
       <body>
         <TRPCReactProvider>
