@@ -8,6 +8,7 @@ import { getMessages } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "~/lib/i18n/routing";
 import { ThemeProvider } from "next-themes";
+import { Toaster } from "sonner";
 
 const figtree = Figtree({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -30,7 +31,7 @@ export default async function LocaleLayout({
 
   return (
     <html
-      className={cn(geist.variable, "font-sans", figtree.variable, "bg-accent")}
+      className={cn(geist.variable, "font-sans", figtree.variable)}
       lang={locale}
     >
       <body>
@@ -42,6 +43,7 @@ export default async function LocaleLayout({
               disableTransitionOnChange
             >
               {children}
+              <Toaster />
             </ThemeProvider>
           </NextIntlClientProvider>
           <ReactQueryDevtools initialIsOpen={false} />
