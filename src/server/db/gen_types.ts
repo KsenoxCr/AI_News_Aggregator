@@ -5,9 +5,10 @@
 
 import type { ColumnType } from "kysely";
 
-export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
-  ? ColumnType<S, I | undefined, U>
-  : ColumnType<T, T | undefined, T>;
+export type Generated<T> =
+  T extends ColumnType<infer S, infer I, infer U>
+    ? ColumnType<S, I | undefined, U>
+    : ColumnType<T, T | undefined, T>;
 
 export interface Agents {
   api_key: string;
@@ -43,7 +44,6 @@ export interface MagicLinkTokens {
   ip_address: string | null;
   token_hash: string;
   updated_at: Date;
-  used: Generated<number>;
   used_at: Date | null;
   value: string;
 }
@@ -76,6 +76,7 @@ export interface Sources {
   enabled: Generated<number | null>;
   id: string;
   slug: string;
+  type: string;
   url: string;
   user_id: string;
 }
