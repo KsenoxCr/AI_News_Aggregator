@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS
   user_preferences,
   sources,
   agents,
+  cached_articles,
   users;
 
 SET FOREIGN_KEY_CHECKS = 1;
