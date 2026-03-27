@@ -5,9 +5,10 @@
 
 import type { ColumnType } from "kysely";
 
-export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
-  ? ColumnType<S, I | undefined, U>
-  : ColumnType<T, T | undefined, T>;
+export type Generated<T> =
+  T extends ColumnType<infer S, infer I, infer U>
+    ? ColumnType<S, I | undefined, U>
+    : ColumnType<T, T | undefined, T>;
 
 export interface Agents {
   api_key: string;
@@ -83,8 +84,12 @@ export interface Sessions {
 }
 
 export interface Sources {
+  auth_credential: string | null;
+  auth_type: Generated<"api_key" | "basic" | "bearer" | "cookie" | "none">;
+  date_filter_param: string | null;
   enabled: Generated<number | null>;
   id: string;
+  is_metered: Generated<number>;
   slug: string;
   type: "ATOM" | "RSS";
   url: string;

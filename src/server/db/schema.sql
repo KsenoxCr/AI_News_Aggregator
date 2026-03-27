@@ -54,9 +54,13 @@ CREATE TABLE sources (
   id  VARCHAR(36) NOT NULL PRIMARY KEY,
   slug  VARCHAR(30) NOT NULL,
   url  VARCHAR(100) NOT NULL,
-  type ENUM('ATOM', 'RSS') NOT NULL,
-  enabled   BOOLEAN DEFAULT TRUE,
-  user_id   VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type              ENUM('ATOM', 'RSS') NOT NULL,
+  enabled           BOOLEAN DEFAULT TRUE,
+  auth_type         ENUM('none', 'basic', 'bearer', 'api_key', 'cookie') NOT NULL DEFAULT 'none',
+  auth_credential   TEXT DEFAULT NULL,
+  date_filter_param VARCHAR(255) DEFAULT NULL,
+  is_metered        BOOLEAN NOT NULL DEFAULT FALSE,
+  user_id           VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   UNIQUE KEY (user_id, slug),
   UNIQUE KEY (user_id, url)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
