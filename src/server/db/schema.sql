@@ -54,7 +54,7 @@ CREATE TABLE sources (
   id  VARCHAR(36) NOT NULL PRIMARY KEY,
   slug  VARCHAR(30) NOT NULL,
   url  VARCHAR(100) NOT NULL,
-  type VARCHAR(20) NOT NULL,
+  type ENUM('ATOM', 'RSS') NOT NULL,
   enabled   BOOLEAN DEFAULT TRUE,
   user_id   VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   UNIQUE KEY (user_id, slug),
@@ -69,6 +69,18 @@ CREATE TABLE user_categories (
   user_id   VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   category  VARCHAR(100) NOT NULL REFERENCES categories(slug) ON DELETE CASCADE,
   PRIMARY KEY (user_id, category)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE cached_articles (
+    id            VARCHAR(36)  PRIMARY KEY,
+    user_id       VARCHAR(36)  NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    source_id     VARCHAR(36)  NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+    title         VARCHAR(500) NOT NULL,
+    description   TEXT,
+    link          VARCHAR(2048) NOT NULL,
+    author        VARCHAR(255)  NOT NULL,
+    published_at  TIMESTAMP     NOT NULL,
+    INDEX idx_sources_articles (user_id, source_id, published_at)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE news_digests (

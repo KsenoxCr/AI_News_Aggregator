@@ -5,16 +5,26 @@
 
 import type { ColumnType } from "kysely";
 
-export type Generated<T> =
-  T extends ColumnType<infer S, infer I, infer U>
-    ? ColumnType<S, I | undefined, U>
-    : ColumnType<T, T | undefined, T>;
+export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
+  ? ColumnType<S, I | undefined, U>
+  : ColumnType<T, T | undefined, T>;
 
 export interface Agents {
   api_key: string;
   id: string;
   slug: string;
   url: string;
+  user_id: string;
+}
+
+export interface CachedArticles {
+  author: string;
+  description: string | null;
+  id: string;
+  link: string;
+  published_at: Date;
+  source_id: string;
+  title: string;
   user_id: string;
 }
 
@@ -76,7 +86,7 @@ export interface Sources {
   enabled: Generated<number | null>;
   id: string;
   slug: string;
-  type: string;
+  type: "ATOM" | "RSS";
   url: string;
   user_id: string;
 }
@@ -103,6 +113,7 @@ export interface Users {
 
 export interface DB {
   agents: Agents;
+  cached_articles: CachedArticles;
   categories: Categories;
   digest_categories: DigestCategories;
   digest_sources: DigestSources;
