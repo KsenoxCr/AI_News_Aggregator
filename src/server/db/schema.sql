@@ -59,6 +59,7 @@ CREATE TABLE sources (
   auth_type         ENUM('none', 'basic', 'bearer', 'api_key', 'cookie') NOT NULL DEFAULT 'none',
   auth_credential   TEXT DEFAULT NULL,
   date_filter_param VARCHAR(255) DEFAULT NULL,
+  date_format       ENUM('ISO_8601', 'ISO_DATE', 'UNIX', 'RFC_1123', 'RFC_822') DEFAULT NULL,
   is_metered        BOOLEAN NOT NULL DEFAULT FALSE,
   user_id           VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   UNIQUE KEY (user_id, slug),
