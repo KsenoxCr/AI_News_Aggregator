@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { DATE_FORMAT, type DateFormat } from "~/config/business";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -54,4 +55,22 @@ export function oklchToHex(l: number, c: number, h: number, alpha = 1): string {
   }
 
   return `#${hex}`;
+}
+
+function formatDate(date: Date, format: DateFormat): string {
+  switch (format) {
+    case DATE_FORMAT.ISO_8601:
+      return date.toISOString();
+    case DATE_FORMAT.ISO_DATE:
+      return date.toISOString().slice(0, 10);
+    case DATE_FORMAT.UNIX:
+      return String(Math.floor(date.getTime() / 1000));
+    case DATE_FORMAT.RFC_1123:
+      return date.toUTCString();
+    case DATE_FORMAT.RFC_822:
+      return format(date, "dd MMM yyyy HH:mm:ss xx");
+    default:
+      const _exhaustive: never = format;
+      throw new Error(`Unhandled date format: ${_exhaustive}`);
+  }
 }
