@@ -35,3 +35,5 @@ export const MAX = {
   agents: 5,
   preferences_chars: 2000,
 } as const;
+
+export type DateFormat = (typeof DATE_FORMAT)[keyof typeof DATE_FORMAT];
