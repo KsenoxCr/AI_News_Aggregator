@@ -3,6 +3,7 @@ import { sourceRouter } from "./routers/source";
 import { agentRouter } from "./routers/agent";
 import { categoryRouter } from "./routers/category";
 import { userRouter } from "./routers/user";
+import { newsRouter } from "./routers/news";
 
 /**
  * This is the primary router for your server.
@@ -10,10 +11,11 @@ import { userRouter } from "./routers/user";
  * All routers added in /api/routers should be manually added here.
  */
 export const appRouter = createTRPCRouter({
-    sourceRouter: sourceRouter,
-    agentRouter: agentRouter,
-    userRouter: userRouter,
-    categoryRouter: categoryRouter
+  sourceRouter: sourceRouter,
+  agentRouter: agentRouter,
+  userRouter: userRouter,
+  categoryRouter: categoryRouter,
+  newsRouter: newsRouter,
 });
 
 // export type definition of API
