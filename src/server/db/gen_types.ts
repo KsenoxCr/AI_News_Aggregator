@@ -17,15 +17,20 @@ export interface Agents {
   user_id: string;
 }
 
+export interface ArticleCategories {
+  article_id: string;
+  category: string;
+}
+
 export interface CachedArticles {
   author: string;
   description: string | null;
+  fetch_id: string;
   id: string;
   link: string;
   published_at: Date;
-  source_id: string;
   title: string;
-  user_id: string;
+  used: Generated<number>;
 }
 
 export interface Categories {
@@ -47,6 +52,13 @@ export interface DigestSources {
   url_hash: string;
 }
 
+export interface Fetches {
+  digest_generated: Generated<number>;
+  id: string;
+  previous_etag: string | null;
+  source_id: string;
+}
+
 export interface MagicLinkTokens {
   created_at: Generated<Date>;
   expires_at: Date;
@@ -54,6 +66,7 @@ export interface MagicLinkTokens {
   ip_address: string | null;
   token_hash: string;
   updated_at: Date;
+  used: Generated<number | null>;
   used_at: Date | null;
   value: string;
 }
@@ -118,10 +131,12 @@ export interface Users {
 
 export interface DB {
   agents: Agents;
+  article_categories: ArticleCategories;
   cached_articles: CachedArticles;
   categories: Categories;
   digest_categories: DigestCategories;
   digest_sources: DigestSources;
+  fetches: Fetches;
   magic_link_tokens: MagicLinkTokens;
   news_digests: NewsDigests;
   sessions: Sessions;

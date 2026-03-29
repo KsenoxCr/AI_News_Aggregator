@@ -67,26 +67,24 @@ CREATE TABLE sources (
   UNIQUE KEY (user_id, url)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-CREATE TABLE categories (
-  slug VARCHAR(100) PRIMARY KEY
-);
-
-CREATE TABLE user_categories (
-  user_id   VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  category  VARCHAR(100) NOT NULL REFERENCES categories(slug) ON DELETE CASCADE,
-  PRIMARY KEY (user_id, category)
+CREATE TABLE fetches (
+  id                VARCHAR(36) NOT NULL PRIMARY KEY,
+  source_id         VARCHAR(36) UNIQUE NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+  previous_etag     VARCHAR(255) DEFAULT NULL,
+  digest_generated  BOOLEAN NOT NULL DEFAULT FALSE,
+  INDEX idx_source_fetches (source_id)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE cached_articles (
     id            VARCHAR(36)  PRIMARY KEY,
-    user_id       VARCHAR(36)  NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    source_id     VARCHAR(36)  NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+    fetch_id     VARCHAR(36)  NOT NULL REFERENCES fetches(id) ON DELETE CASCADE,
     title         VARCHAR(500) NOT NULL,
     description   TEXT,
     link          VARCHAR(2048) NOT NULL,
     author        VARCHAR(255)  NOT NULL,
     published_at  TIMESTAMP     NOT NULL,
-    INDEX idx_sources_articles (user_id, source_id, published_at)
+    used          BOOLEAN       NOT NULL DEFAULT FALSE,
+    INDEX idx_used_sources_articles (fetch_id, published_at, used)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE news_digests (
@@ -113,6 +111,22 @@ CREATE TABLE digest_sources (
     published_at TIMESTAMP,
     INDEX idx_digest_sources (digest_id),
     INDEX idx_url_hash (url_hash)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE categories (
+  slug VARCHAR(100) PRIMARY KEY
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE user_categories (
+  user_id   VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  category  VARCHAR(100) NOT NULL REFERENCES categories(slug) ON DELETE CASCADE,
+  PRIMARY KEY (user_id, category)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE article_categories (
+  article_id   VARCHAR(36) NOT NULL REFERENCES cached_articles(id) ON DELETE CASCADE,
+  category  VARCHAR(100) NOT NULL REFERENCES categories(slug) ON DELETE CASCADE,
+  PRIMARY KEY (article_id, category)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE digest_categories (
