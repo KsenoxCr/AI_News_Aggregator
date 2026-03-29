@@ -55,7 +55,6 @@ CREATE TABLE sources (
   id  VARCHAR(36) NOT NULL PRIMARY KEY,
   slug  VARCHAR(30) NOT NULL,
   url  VARCHAR(100) NOT NULL,
-  type              ENUM('ATOM', 'RSS') NOT NULL,
   enabled           BOOLEAN DEFAULT TRUE,
   auth_type         ENUM('none', 'basic', 'bearer', 'api_key', 'cookie') NOT NULL DEFAULT 'none',
   auth_credential   TEXT DEFAULT NULL,

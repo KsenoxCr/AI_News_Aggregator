@@ -104,7 +104,6 @@ export interface Sources {
   id: string;
   is_metered: Generated<number>;
   slug: string;
-  type: "ATOM" | "RSS";
   url: string;
   user_id: string;
 }
