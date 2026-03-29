@@ -1,5 +1,15 @@
+import z from "zod";
+
 const DB_NAME = "news_db";
 const DB_VERSION = 1;
+
+export const FetchSchema = z.object({
+  etag: z.string(),
+  source: z.string(),
+  digests_generated: z.boolean(),
+});
+
+export type Fetch = z.infer<typeof FetchSchema>;
 
 export function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -15,7 +25,7 @@ export function openDB(): Promise<IDBDatabase> {
         });
       }
 
-      if (!db.objectStoreNames.contains("etags")) {
+      if (!db.objectStoreNames.contains("fetches")) {
         const store = db.createObjectStore("fetches", { keyPath: "etag" });
         store.createIndex("source", "source", { unique: true });
       }
@@ -25,8 +35,6 @@ export function openDB(): Promise<IDBDatabase> {
     req.onerror = () => reject(req.error);
   });
 }
-
-// TODO: Swap T with normalization libs return type
 
 export function dbGet<T>(
   db: IDBDatabase,
