@@ -70,7 +70,6 @@ CREATE TABLE fetches (
   id                VARCHAR(36) NOT NULL PRIMARY KEY,
   source_id         VARCHAR(36) UNIQUE NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
   previous_etag     VARCHAR(255) DEFAULT NULL,
-  digest_generated  BOOLEAN NOT NULL DEFAULT FALSE,
   INDEX idx_source_fetches (source_id)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -78,12 +77,11 @@ CREATE TABLE cached_articles (
     id            VARCHAR(36)  PRIMARY KEY,
     fetch_id     VARCHAR(36)  NOT NULL REFERENCES fetches(id) ON DELETE CASCADE,
     title         VARCHAR(500) NOT NULL,
-    description   TEXT,
     link          VARCHAR(2048) NOT NULL,
     author        VARCHAR(255)  NOT NULL,
     published_at  TIMESTAMP     NOT NULL,
     used          BOOLEAN       NOT NULL DEFAULT FALSE,
-    INDEX idx_used_sources_articles (fetch_id, published_at, used)
+    INDEX idx_published_at (published_at, used)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE news_digests (
