@@ -11,11 +11,11 @@ import { newsRouter } from "./routers/news";
  * All routers added in /api/routers should be manually added here.
  */
 export const appRouter = createTRPCRouter({
-  sourceRouter: sourceRouter,
-  agentRouter: agentRouter,
-  userRouter: userRouter,
-  categoryRouter: categoryRouter,
-  newsRouter: newsRouter,
+  source: sourceRouter,
+  agent: agentRouter,
+  user: userRouter,
+  category: categoryRouter,
+  news: newsRouter,
 });
 
 // export type definition of API
