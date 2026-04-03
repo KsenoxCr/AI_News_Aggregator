@@ -1,8 +1,8 @@
 export const BRAND = {
   appName: "AI News",
   developer: "Ksenox",
-  publishYear: "2026",
-};
+  publishmentYear: "2026",
+} as const;
 
 export const AUTH = {
   magicLinkExpiresIn: 60 * 5, // 5min
@@ -29,6 +29,8 @@ export const DATE_FORMAT = {
   RFC_822: "RFC_822",
 } as const;
 
+export type DateFormat = (typeof DATE_FORMAT)[keyof typeof DATE_FORMAT];
+
 export const MAX = {
   sources: 10,
   categories: 10,
@@ -36,4 +38,15 @@ export const MAX = {
   preferences_chars: 2000,
 } as const;
 
-export type DateFormat = (typeof DATE_FORMAT)[keyof typeof DATE_FORMAT];
+export const AGENT = {
+  SUPPORTED_ENDPOINTS: {
+    OpenAI: "v1/chat/completions",
+    Anthropic: "v1/messages",
+  },
+  RATE_LIMITS: {
+    freeTier: {},
+  },
+} as const;
+
+export type AgentEndpoint =
+  (typeof AGENT.SUPPORTED_ENDPOINTS)[keyof typeof AGENT.SUPPORTED_ENDPOINTS];
