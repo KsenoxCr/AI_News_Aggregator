@@ -5,9 +5,9 @@ import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
 
 function GenFeedBtn() {
-  const [date, setDate] = useState<Date>(new Date(2024, 3, 26));
+  const [date, setDate] = useState<Date>(new Date(2024, 3, 20));
 
-  api.newsRouter.generateFeed.useQuery(date);
+  api.news.generateFeed.useSubscription(date);
 
   const setNow = () => {
     setDate(new Date());
@@ -17,10 +17,13 @@ function GenFeedBtn() {
 }
 
 function AddSourceBtn() {
-  const mutation = api.sourceRouter.addSource.useMutation();
+  const mutation = api.source.addSource.useMutation();
 
   const handleClick = () => {
-    mutation.mutate({ slug: "test-source", url: "https://example.com/feed" });
+    // mutation.mutate({
+    //   slug: "url_fails",
+    //   url: "https://example.com/notafeed.xml",
+    // });
   };
 
   return <Button onClick={handleClick}>addSource</Button>;
