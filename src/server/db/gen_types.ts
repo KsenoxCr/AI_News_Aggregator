@@ -11,7 +11,9 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
 
 export interface Agents {
   api_key: string;
+  enabled: Generated<number>;
   id: string;
+  model: string;
   slug: string;
   url: string;
   user_id: string;
@@ -24,7 +26,6 @@ export interface ArticleCategories {
 
 export interface CachedArticles {
   author: string;
-  description: string | null;
   fetch_id: string;
   id: string;
   link: string;
@@ -53,7 +54,6 @@ export interface DigestSources {
 }
 
 export interface Fetches {
-  digest_generated: Generated<number>;
   id: string;
   previous_etag: string | null;
   source_id: string;
