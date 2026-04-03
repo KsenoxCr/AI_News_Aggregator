@@ -13,6 +13,9 @@ export const auth = betterAuth({
   appName: BRAND.appName,
   baseURL: process.env.NEXT_PUBLIC_APP_URL,
   database: dialect,
+  advanced: {
+    cookiePrefix: "ai_news",
+  },
   plugins: [
     magicLink({
       sendMagicLink: async ({ email, url }) => {
@@ -124,6 +127,8 @@ export const auth = betterAuth({
     },
   },
   databaseHooks: {
+    // TODO: update magic token entry used and usedAt
+
     session: {
       create: {
         before: async (session) => {
