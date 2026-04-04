@@ -9,6 +9,9 @@
       "apiKeyTooLong": "API key must be {{max}} characters or less",
       "idInvalid": "Invalid agent ID"
     },
+    "response": {
+      "schemaMismatch": "The response from the agent did not match the expected format for this endpoint"
+    },
     "source": {
       "nameRequired": "Name is required",
       "nameTooLong": "Name must be {{max}} characters or less",

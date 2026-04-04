@@ -1,5 +1,8 @@
 {
   "validation": {
+    "response": {
+      "schemaMismatch": "Agentin vastaus ei vastannut tämän päätepisteen odotettua muotoa"
+    },
     "agent": {
       "nameRequired": "Nimi vaaditaan",
       "nameTooLong": "Nimi saa olla enintään {{max}} merkkiä pitkä",
