@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { db } from "./db";
+import { db } from "~/server/db/db";
 
 const TEST_USER_ID = process.env.TEST_USER_ID;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;

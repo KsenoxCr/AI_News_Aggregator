@@ -19,7 +19,7 @@
     "db:rollback": "kysely migrate rollback --all",
     "db:make": "kysely migrate make",
     "db:status": "kysely migrate list",
-    "db:migrate-codegen": "./scripts/migration_with_codegen.sh"
+    "db:migrate-codegen": "./scripts/migration_with_codegen.sh",
     "db:seed": "pnpm tsx ./scripts/seed.ts"
   },
   "dependencies": {
