@@ -3,6 +3,9 @@
     "response": {
       "schemaMismatch": "Agentin vastaus ei vastannut tämän päätepisteen odotettua muotoa"
     },
+    "output": {
+      "schemaMismatch": "Tekoälyn vastausta ei voitu lukea oikein. Vastaus saatiin, mutta sitä ei pystytty tulkitsemaan. Yritä uudelleen tai ota yhteyttä tukeen, jos ongelma jatkuu."
+    },
     "agent": {
       "nameRequired": "Nimi vaaditaan",
       "nameTooLong": "Nimi saa olla enintään {{max}} merkkiä pitkä",

@@ -12,6 +12,9 @@
     "response": {
       "schemaMismatch": "The response from the agent did not match the expected format for this endpoint"
     },
+    "output": {
+      "schemaMismatch": "Something went wrong while reading the AI's reply. The answer was received but could not be understood. Please try again or contact support if the issue persists."
+    },
     "source": {
       "nameRequired": "Name is required",
       "nameTooLong": "Name must be {{max}} characters or less",
