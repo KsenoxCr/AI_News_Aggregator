@@ -10,6 +10,7 @@ import {
 export function AgentAdapterFactory(endpoint: AgentEndpoint): AgentAdapter {
   switch (endpoint) {
     case AGENT.SUPPORTED_ENDPOINTS.OpenAI:
+    case AGENT.SUPPORTED_ENDPOINTS.OpenRouter:
       return OAIAdapter;
     case AGENT.SUPPORTED_ENDPOINTS.Anthropic:
       return AnthropicAdapter;
@@ -31,6 +32,7 @@ export function AgentInputFactory(
 
   switch (endpoint) {
     case AGENT.SUPPORTED_ENDPOINTS.OpenAI:
+    case AGENT.SUPPORTED_ENDPOINTS.OpenRouter:
       return {
         endpoint,
         model,
