@@ -95,6 +95,8 @@ export const OAIAdapter: AgentAdapter = {
     body: JSON.stringify({ model: input.model, messages: input.messages }),
   }),
   parseResponse: (raw) => {
+    console.log(raw);
+
     const parsed = OAIResponseSchema.safeParse(raw);
 
     if (parsed.error) {
@@ -102,7 +104,7 @@ export const OAIAdapter: AgentAdapter = {
         status: "failure",
         error: {
           code: "SCHEMA_MISMATCH",
-          message: "validation.agent.schemaMismatch",
+          message: "validation.output.schemaMismatch",
         },
       };
     }
@@ -139,7 +141,7 @@ export const AnthropicAdapter: AgentAdapter = {
         status: "failure",
         error: {
           code: "SCHEMA_MISMATCH",
-          message: "validation.agent.schemaMismatch",
+          message: "validation.output.schemaMismatch",
         },
       };
     }
