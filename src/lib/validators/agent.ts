@@ -5,65 +5,57 @@ export const AddAgentSchemaFactory = (t: TFn) =>
   z.object({
     slug: z
       .string()
-      .min(1, t("validation.agent.nameRequired"))
-      .max(30, t("validation.agent.nameTooLong", { max: 30 })),
+      .min(1, t("validation.agent.config.nameRequired"))
+      .max(30, t("validation.agent.config.nameTooLong", { max: 30 })),
     url: z
       .string()
-      .url(t("validation.agent.urlInvalid"))
-      .max(100, t("validation.agent.urlTooLong", { max: 100 })),
+      .url(t("validation.agent.config.urlInvalid"))
+      .max(100, t("validation.agent.config.urlTooLong", { max: 100 })),
     api_key: z
       .string()
-      .min(1, t("validation.agent.apiKeyRequired"))
-      .max(100, t("validation.agent.apiKeyTooLong", { max: 100 })),
+      .min(1, t("validation.agent.config.apiKeyRequired"))
+      .max(100, t("validation.agent.config.apiKeyTooLong", { max: 100 })),
   });
 
 export const ModifyAgentSchemaFactory = (t: TFn) =>
   z.object({
-    id: z.string().length(36, t("validation.agent.idInvalid")),
+    id: z.string().length(36, t("validation.agent.config.idInvalid")),
     slug: z
       .string()
-      .min(1, t("validation.agent.nameRequired"))
-      .max(30, t("validation.agent.nameTooLong", { max: 30 }))
+      .min(1, t("validation.agent.config.nameRequired"))
+      .max(30, t("validation.agent.config.nameTooLong", { max: 30 }))
       .optional(),
     url: z
       .string()
-      .url(t("validation.agent.urlInvalid"))
-      .max(100, t("validation.agent.urlTooLong", { max: 100 }))
+      .url(t("validation.agent.config.urlInvalid"))
+      .max(100, t("validation.agent.config.urlTooLong", { max: 100 }))
       .optional(),
     api_key: z
       .string()
-      .min(1, t("validation.agent.apiKeyRequired"))
-      .max(100, t("validation.agent.apiKeyTooLong", { max: 100 }))
+      .min(1, t("validation.agent.config.apiKeyRequired"))
+      .max(100, t("validation.agent.config.apiKeyTooLong", { max: 100 }))
       .optional(),
   });
 
-export const OAIResponseSchema = z.object({
-  id: z.string(),
-  object: z.literal("chat.completion"),
-  model: z.string(),
-  choices: z
-    .array(
-      z
-        .object({
-          index: z.number(),
-          finish_reason: z.string(),
-          message: z
-            .object({
-              role: z.literal("assistant"),
-              content: z.string(),
-            })
-            .passthrough(),
-        })
-        .passthrough(),
-    )
-    .min(1),
-  usage: z
-    .object({
-      prompt_tokens: z.number(),
-      completion_tokens: z.number(),
-    })
-    .passthrough(),
-});
+export const OAIResponseSchema = z
+  .object({
+    model: z.string(),
+    choices: z
+      .array(
+        z
+          .object({
+            message: z
+              .object({
+                role: z.literal("assistant"),
+                content: z.string(),
+              })
+              .passthrough(),
+          })
+          .passthrough(),
+      )
+      .min(1),
+  })
+  .passthrough();
 
 export const AnthropicResponseSchema = z.object({
   id: z.string(),

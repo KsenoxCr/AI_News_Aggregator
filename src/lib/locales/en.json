@@ -1,19 +1,21 @@
 {
   "validation": {
     "agent": {
-      "nameRequired": "Name is required",
-      "nameTooLong": "Name must be {{max}} characters or less",
-      "urlInvalid": "Please enter a valid URL",
-      "urlTooLong": "URL must be {{max}} characters or less",
-      "apiKeyRequired": "API key is required",
-      "apiKeyTooLong": "API key must be {{max}} characters or less",
-      "idInvalid": "Invalid agent ID"
-    },
-    "response": {
-      "schemaMismatch": "The response from the agent did not match the expected format for this endpoint"
-    },
-    "output": {
-      "schemaMismatch": "Something went wrong while reading the AI's reply. The answer was received but could not be understood. Please try again or contact support if the issue persists."
+      "config": {
+        "nameRequired": "Name is required",
+        "nameTooLong": "Name must be {{max}} characters or less",
+        "urlInvalid": "Please enter a valid URL",
+        "urlTooLong": "URL must be {{max}} characters or less",
+        "apiKeyRequired": "API key is required",
+        "apiKeyTooLong": "API key must be {{max}} characters or less",
+        "idInvalid": "Invalid agent ID"
+      },
+      "response": {
+        "schemaMismatch": "The response from the agent did not match the expected format for this endpoint"
+      },
+      "content": {
+        "schemaMismatch": "Something went wrong while reading the AI's reply. The answer was received but could not be understood. Please try again or contact support if the issue persists."
+      }
     },
     "source": {
       "nameRequired": "Name is required",

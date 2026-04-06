@@ -48,13 +48,13 @@ export interface AnthropicInput {
 interface OAIOutput {
   endpointType: "oai";
   content: string;
-  usage: { prompt_tokens: number; completion_tokens: number };
+  usage?: { prompt_tokens: number; completion_tokens: number };
 }
 
 interface AnthropicOutput {
   endpointType: "anthropic";
   content: string;
-  usage: { input_tokens: number; output_tokens: number };
+  usage?: { input_tokens: number; output_tokens: number };
 }
 
 export type AgentInput<T extends EndpointType = EndpointType> = T extends "oai"
@@ -104,7 +104,7 @@ export const OAIAdapter: AgentAdapter = {
         status: "failure",
         error: {
           code: "SCHEMA_MISMATCH",
-          message: "validation.output.schemaMismatch",
+          message: "validation.agent.content.schemaMismatch",
         },
       };
     }
@@ -114,10 +114,6 @@ export const OAIAdapter: AgentAdapter = {
       response: {
         endpointType: "oai",
         content: parsed.data.choices[0]!.message.content,
-        usage: {
-          prompt_tokens: parsed.data.usage.prompt_tokens,
-          completion_tokens: parsed.data.usage.completion_tokens,
-        },
       },
     };
   },
@@ -141,7 +137,7 @@ export const AnthropicAdapter: AgentAdapter = {
         status: "failure",
         error: {
           code: "SCHEMA_MISMATCH",
-          message: "validation.output.schemaMismatch",
+          message: "validation.agent.content.schemaMismatch",
         },
       };
     }
