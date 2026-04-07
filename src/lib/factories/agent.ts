@@ -1,5 +1,5 @@
 import { AGENT } from "~/config/business";
-import type { AgentEndpoint } from "~/config/business";
+import type { AgentEndpoint, AgentProvider } from "~/config/business";
 import {
   AnthropicAdapter,
   OAIAdapter,
@@ -8,17 +8,17 @@ import {
   type AgentInput,
 } from "../adapters/agent";
 
-export function AgentAdapterFactory(endpoint: AgentEndpoint): AgentAdapter {
-  switch (endpoint) {
-    case AGENT.SUPPORTED_ENDPOINTS.OpenAI:
+export function AgentAdapterFactory(provider: AgentProvider): AgentAdapter {
+  switch (provider) {
+    case AGENT.PROVIDERS.OpenAI:
       return OAIAdapter;
-    // case AGENT.SUPPORTED_ENDPOINTS.OpenRouter:
+    // case AGENT.PROVIDERS.OpenRouter:
     //   return OpenRouterAdapter;
-    case AGENT.SUPPORTED_ENDPOINTS.Anthropic:
+    case AGENT.PROVIDERS.Anthropic:
       return AnthropicAdapter;
     default:
-      const _exhaustive: never = endpoint;
-      throw new Error(`Unhandled endpoint: ${endpoint}`);
+      const _exhaustive: never = provider;
+      throw new Error(`Unhandled provider: ${provider}`);
   }
 }
 
@@ -33,8 +33,8 @@ export function AgentInputFactory(
   // (needs control flow for new OAI models -> Structured Outputs, old OAI Models -> JSON Mode,  non OAI but OAI request schema -> no response_format)
 
   switch (endpoint) {
-    case AGENT.SUPPORTED_ENDPOINTS.OpenAI:
-      // case AGENT.SUPPORTED_ENDPOINTS.OpenRouter:
+    case AGENT.ENDPOINTS.OpenAI:
+      // case AGENT.ENDPOINTS.OpenRouter:
       return {
         endpoint,
         model,
@@ -54,7 +54,7 @@ export function AgentInputFactory(
         //     }
         //   : undefined,
       };
-    case AGENT.SUPPORTED_ENDPOINTS.Anthropic:
+    case AGENT.ENDPOINTS.Anthropic:
       return {
         endpoint,
         model,

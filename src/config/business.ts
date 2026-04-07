@@ -1,3 +1,5 @@
+import { KeysRecord } from "~/lib/utils";
+
 export const BRAND = {
   appName: "AI News",
   developer: "Ksenox",
@@ -38,16 +40,21 @@ export const MAX = {
   preferences_chars: 2000,
 } as const;
 
+const _AGENT_ENDPOINTS = {
+  OpenAI: "https://api.openai.com/v1/chat/completions",
+  // OpenRouter: "https://openrouter.ai/api/v1/chat/completions",
+  Anthropic: "https://api.anthropic.com/v1/messages",
+} as const;
+
 export const AGENT = {
-  SUPPORTED_ENDPOINTS: {
-    OpenAI: "https://api.openai.com/v1/chat/completions",
-    // OpenRouter: "https://openrouter.ai/api/v1/chat/completions",
-    Anthropic: "https://api.anthropic.com/v1/messages",
-  },
+  ENDPOINTS: _AGENT_ENDPOINTS,
+  PROVIDERS: KeysRecord(_AGENT_ENDPOINTS),
   RATE_LIMITS: {
     freeTier: {},
   },
 } as const;
 
+export type AgentProvider =
+  (typeof AGENT.PROVIDERS)[keyof typeof AGENT.PROVIDERS];
 export type AgentEndpoint =
-  (typeof AGENT.SUPPORTED_ENDPOINTS)[keyof typeof AGENT.SUPPORTED_ENDPOINTS];
+  (typeof AGENT.ENDPOINTS)[keyof typeof AGENT.ENDPOINTS];
