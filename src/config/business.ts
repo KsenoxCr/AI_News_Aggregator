@@ -40,9 +40,9 @@ export const MAX = {
 
 export const AGENT = {
   SUPPORTED_ENDPOINTS: {
-    OpenAI: "v1/chat/completions",
-    OpenRouter: "api/v1/chat/completions",
-    Anthropic: "v1/messages",
+    OpenAI: "https://api.openai.com/v1/chat/completions",
+    OpenRouter: "https://openrouter.ai/api/v1/chat/completions",
+    Anthropic: "https://api.anthropic.com/v1/messages",
   },
   RATE_LIMITS: {
     freeTier: {},
