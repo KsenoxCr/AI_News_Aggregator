@@ -1,16 +1,12 @@
 import { z } from "zod";
 import type { TFn } from "./types";
+import { AGENT } from "~/config/business";
+import { ObjectKeysEnum } from "../utils";
 
 export const AddAgentSchemaFactory = (t: TFn) =>
   z.object({
-    slug: z
-      .string()
-      .min(1, t("validation.agent.config.nameRequired"))
-      .max(30, t("validation.agent.config.nameTooLong", { max: 30 })),
-    url: z
-      .string()
-      .url(t("validation.agent.config.urlInvalid"))
-      .max(100, t("validation.agent.config.urlTooLong", { max: 100 })),
+    provider: ObjectKeysEnum(AGENT.SUPPORTED_ENDPOINTS),
+    model: z.string().max(100),
     api_key: z
       .string()
       .min(1, t("validation.agent.config.apiKeyRequired"))
@@ -19,17 +15,8 @@ export const AddAgentSchemaFactory = (t: TFn) =>
 
 export const ModifyAgentSchemaFactory = (t: TFn) =>
   z.object({
-    id: z.string().length(36, t("validation.agent.config.idInvalid")),
-    slug: z
-      .string()
-      .min(1, t("validation.agent.config.nameRequired"))
-      .max(30, t("validation.agent.config.nameTooLong", { max: 30 }))
-      .optional(),
-    url: z
-      .string()
-      .url(t("validation.agent.config.urlInvalid"))
-      .max(100, t("validation.agent.config.urlTooLong", { max: 100 }))
-      .optional(),
+    id: z.string().length(36),
+    model: z.string().max(100),
     api_key: z
       .string()
       .min(1, t("validation.agent.config.apiKeyRequired"))

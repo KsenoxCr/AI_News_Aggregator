@@ -5,17 +5,18 @@
 
 import type { ColumnType } from "kysely";
 
-export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
-  ? ColumnType<S, I | undefined, U>
-  : ColumnType<T, T | undefined, T>;
+export type Generated<T> =
+  T extends ColumnType<infer S, infer I, infer U>
+    ? ColumnType<S, I | undefined, U>
+    : ColumnType<T, T | undefined, T>;
 
 export interface Agents {
   api_key: string;
   enabled: Generated<number>;
   id: string;
   model: string;
+  provider: string;
   slug: string;
-  url: string;
   user_id: string;
 }
 

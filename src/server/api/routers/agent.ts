@@ -5,7 +5,7 @@ import {
   protectedTranslatedProcedure,
 } from "~/server/api/trpc";
 import { db } from "~/server/db/db";
-import { IsDuplicateEntry, TestOAIAPI } from "~/server/lib/util";
+import { IsDuplicateEntry } from "~/server/lib/util";
 import { MAX } from "~/config/business";
 import {
   AddAgentSchemaFactory,
@@ -36,6 +36,8 @@ export const agentRouter = createTRPCRouter({
         .where("user_id", "=", ctx.session!.user.id)
         .executeTakeFirst();
 
+      // TODO: translate err msg
+
       if (Number(existingAgents!.count ?? 0) >= MAX.agents) {
         return {
           status: "failure",
@@ -46,46 +48,47 @@ export const agentRouter = createTRPCRouter({
 
       const agentId = crypto.randomUUID();
 
-      // TODO: Swap to provider agnostic approach using adapter interface pattern
+      // TODO: Swap to adapter interface
 
-      const res = await TestOAIAPI(validated.url, validated.api_key);
+      // const res = await TestOAIAPI(validated.provider, validated.api_key);
 
-      if (res.error) {
-        let errorCode: string | number = res.status;
-        let error = res.error;
-
-        switch (res.status) {
-          case 401:
-            errorCode = "UNAUTHORIZED";
-            error = ctx.t("errors.api.invalidApiKey");
-            break;
-          case 403:
-            errorCode = "FORBIDDEN";
-            error = ctx.t("errors.api.insufficientPermissions");
-            break;
-          case 500:
-            errorCode = "SERVER_ERROR";
-            error = ctx.t("errors.api.serverError");
-            break;
-          case 503:
-            errorCode = "SERVICE_UNAVAILABLE";
-            error = ctx.t("errors.api.serviceUnavailable");
-            break;
-          default:
-            errorCode = res.status;
-            error = res.error;
-        }
-
-        return { status: "failure", errorCode, error };
-      }
+      // if (res.error) {
+      //   let errorCode: string | number = res.status;
+      //   let error = res.error;
+      //
+      //   switch (res.status) {
+      //     case 401:
+      //       errorCode = "UNAUTHORIZED";
+      //       error = ctx.t("errors.api.invalidApiKey");
+      //       break;
+      //     case 403:
+      //       errorCode = "FORBIDDEN";
+      //       error = ctx.t("errors.api.insufficientPermissions");
+      //       break;
+      //     case 500:
+      //       errorCode = "SERVER_ERROR";
+      //       error = ctx.t("errors.api.serverError");
+      //       break;
+      //     case 503:
+      //       errorCode = "SERVICE_UNAVAILABLE";
+      //       error = ctx.t("errors.api.serviceUnavailable");
+      //       break;
+      //     default:
+      //       errorCode = res.status;
+      //       error = res.error;
+      //   }
+      //
+      //   return { status: "failure", errorCode, error };
+      // }
 
       try {
         await db
           .insertInto("agents")
           .values({
             id: agentId,
-            slug: validated.slug,
-            url: validated.url,
+            slug: `${validated.provider}: ${validated.model}`,
+            provider: validated.provider,
+            model: validated.model,
             api_key: validated.api_key,
             user_id: ctx.session!.user.id,
           })
@@ -99,7 +102,7 @@ export const agentRouter = createTRPCRouter({
           error = ctx.t("errors.conflicts.agentNameExists");
         }
 
-        if (IsDuplicateEntry(err, "url")) {
+        if (IsDuplicateEntry(err, "provider")) {
           errorCode = "CONFLICT";
           error = ctx.t("errors.conflicts.agentUrlExists");
         }
@@ -154,7 +157,7 @@ export const agentRouter = createTRPCRouter({
           error = ctx.t("errors.conflicts.agentNameExists");
         }
 
-        if (IsDuplicateEntry(err, "url")) {
+        if (IsDuplicateEntry(err, "provider")) {
           errorCode = "CONFLICT";
           error = ctx.t("errors.conflicts.agentUrlExists");
         }

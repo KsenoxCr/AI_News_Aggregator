@@ -19,7 +19,7 @@ export type ArticleWithCategory = Article & {
   category: string | null;
 };
 
-export type Agent = Pick<Agents, "url" | "model" | "api_key">;
+export type Agent = Pick<Agents, "provider" | "model" | "api_key">;
 
 export type Source = Pick<
   Sources,

@@ -42,14 +42,14 @@ CREATE TABLE magic_link_tokens (
 
 CREATE TABLE agents (
     id      VARCHAR(36) NOT NULL PRIMARY KEY,
-    slug    VARCHAR(30) NOT NULL,
-    url     VARCHAR(100) NOT NULL,
+    slug    VARCHAR(255) NOT NULL,
+    provider VARCHAR(100) NOT NULL,
     api_key VARCHAR(256) NOT NULL,
     model   VARCHAR(256) NOT NULL,
     enabled BOOLEAN NOT NULL DEFAULT FALSE,
     user_id   VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE KEY (user_id, slug),
-    UNIQUE KEY (user_id, url),
+    UNIQUE KEY (user_id, provider),
     INDEX idx_users_agents (user_id)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
