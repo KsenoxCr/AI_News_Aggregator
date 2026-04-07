@@ -1,8 +1,7 @@
+import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
+import { OpenRouter } from "@openrouter/sdk";
 import { AGENT, type AgentEndpoint } from "~/config/business";
-import {
-  OAIResponseSchema,
-  AnthropicResponseSchema,
-} from "~/lib/validators/agent";
 
 type EndpointType = "oai" | "anthropic";
 
@@ -84,78 +83,87 @@ type ParseResponseResult =
 
 export interface AgentAdapter {
   endpoint: AgentEndpoint;
-  buildRequest(input: AgentInput): RequestInit;
-  parseResponse(raw: unknown): ParseResponseResult;
-  authHeaders(key: string): Record<string, string>;
+  sendRequest(input: AgentInput, apiKey: string): Promise<ParseResponseResult>;
 }
 
 export const OAIAdapter: AgentAdapter = {
   endpoint: AGENT.SUPPORTED_ENDPOINTS.OpenAI,
-  buildRequest: (input) => ({
-    body: JSON.stringify({ model: input.model, messages: input.messages }),
-  }),
-  parseResponse: (raw) => {
-    console.log(raw);
-
-    const parsed = OAIResponseSchema.safeParse(raw);
-
-    if (parsed.error) {
+  sendRequest: async (input, apiKey) => {
+    const client = new OpenAI({ apiKey });
+    const i = input as OAIInput;
+    const res = await client.chat.completions.create({
+      model: i.model,
+      messages: i.messages,
+    });
+    const content = res.choices[0]?.message.content;
+    if (!content) {
       return {
         status: "failure",
-        error: {
-          code: "SCHEMA_MISMATCH",
-          message: "validation.agent.content.schemaMismatch",
-        },
+        error: { code: "EMPTY_RESPONSE", message: "validation.agent.content.emptyResponse" },
       };
     }
-
     return {
       status: "success",
-      response: {
-        endpointType: "oai",
-        content: parsed.data.choices[0]!.message.content,
-      },
+      response: { endpointType: "oai", content },
     };
   },
-  authHeaders: (key) => ({ Authorization: `Bearer ${key}` }),
+};
+
+export const OpenRouterAdapter: AgentAdapter = {
+  endpoint: AGENT.SUPPORTED_ENDPOINTS.OpenRouter,
+  sendRequest: async (input, apiKey) => {
+    const client = new OpenRouter({ apiKey });
+    const i = input as OAIInput;
+    const res = await client.chat.send({
+      chatRequest: {
+        model: i.model,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        messages: i.messages as any,
+        stream: false,
+      },
+    });
+    const content = res.choices[0]?.message.content;
+    if (typeof content !== "string" || !content) {
+      return {
+        status: "failure",
+        error: { code: "EMPTY_RESPONSE", message: "validation.agent.content.emptyResponse" },
+      };
+    }
+    return {
+      status: "success",
+      response: { endpointType: "oai", content },
+    };
+  },
 };
 
 export const AnthropicAdapter: AgentAdapter = {
   endpoint: AGENT.SUPPORTED_ENDPOINTS.Anthropic,
-  buildRequest: (input) => ({
-    body: JSON.stringify({
-      model: input.model,
-      messages: input.messages,
-      max_tokens: input.max_tokens,
-    }),
-  }),
-  parseResponse: (raw) => {
-    const parsed = AnthropicResponseSchema.safeParse(raw);
-
-    if (parsed.error) {
+  sendRequest: async (input, apiKey) => {
+    const client = new Anthropic({ apiKey });
+    const i = input as AnthropicInput;
+    const res = await client.messages.create({
+      model: i.model,
+      messages: i.messages,
+      max_tokens: i.max_tokens,
+      ...(i.system && { system: i.system }),
+    });
+    const block = res.content[0];
+    if (!block || block.type !== "text") {
       return {
         status: "failure",
-        error: {
-          code: "SCHEMA_MISMATCH",
-          message: "validation.agent.content.schemaMismatch",
-        },
+        error: { code: "EMPTY_RESPONSE", message: "validation.agent.content.emptyResponse" },
       };
     }
-
     return {
       status: "success",
       response: {
         endpointType: "anthropic",
-        content: parsed.data.content[0]!.text,
+        content: block.text,
         usage: {
-          input_tokens: parsed.data.usage.input_tokens,
-          output_tokens: parsed.data.usage.output_tokens,
+          input_tokens: res.usage.input_tokens,
+          output_tokens: res.usage.output_tokens,
         },
       },
     };
   },
-  authHeaders: (key) => ({
-    "x-api-key": key,
-    "anthropic-version": "2023-06-01",
-  }),
 };
