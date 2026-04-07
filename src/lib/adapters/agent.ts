@@ -80,15 +80,32 @@ type ParseResponseResult =
       };
     };
 
+type ValidateAPIKeyResult =
+  | { status: "success"; models: string[] }
+  | { status: "failure"; error: { code: string; message: string } };
+
 export interface AgentAdapter {
   endpoint: AgentEndpoint;
   sendRequest(input: AgentInput, apiKey: string): Promise<ParseResponseResult>;
+  validateAPIKey(apiKey: string): Promise<ValidateAPIKeyResult>;
 }
 
 export const OAIAdapter: AgentAdapter = {
-  endpoint: AGENT.SUPPORTED_ENDPOINTS.OpenAI,
+  endpoint: AGENT.ENDPOINTS.OpenAI,
   // TODO: response format coercion
 
+  validateAPIKey: async (apiKey) => {
+    try {
+      const client = new OpenAI({ apiKey });
+      const page = await client.models.list();
+      return { status: "success", models: page.data.map((m) => m.id) };
+    } catch {
+      return {
+        status: "failure",
+        error: { code: "UNAUTHORIZED", message: "errors.api.invalidApiKey" },
+      };
+    }
+  },
   sendRequest: async (input, apiKey) => {
     const client = new OpenAI({ apiKey });
     const i = input as OAIInput;
@@ -143,7 +160,19 @@ export const OAIAdapter: AgentAdapter = {
 // };
 
 export const AnthropicAdapter: AgentAdapter = {
-  endpoint: AGENT.SUPPORTED_ENDPOINTS.Anthropic,
+  endpoint: AGENT.ENDPOINTS.Anthropic,
+  validateAPIKey: async (apiKey) => {
+    try {
+      const client = new Anthropic({ apiKey });
+      const page = await client.models.list();
+      return { status: "success", models: page.data.map((m) => m.id) };
+    } catch {
+      return {
+        status: "failure",
+        error: { code: "UNAUTHORIZED", message: "errors.api.invalidApiKey" },
+      };
+    }
+  },
   sendRequest: async (input, apiKey) => {
     const client = new Anthropic({ apiKey });
     const i = input as AnthropicInput;
