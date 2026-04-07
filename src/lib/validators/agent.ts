@@ -5,8 +5,7 @@ import { ObjectKeysEnum } from "../utils";
 
 export const AddAgentSchemaFactory = (t: TFn) =>
   z.object({
-    provider: ObjectKeysEnum(AGENT.SUPPORTED_ENDPOINTS),
-    model: z.string().max(100),
+    provider: ObjectKeysEnum(AGENT.ENDPOINTS),
     api_key: z
       .string()
       .min(1, t("validation.agent.config.apiKeyRequired"))
