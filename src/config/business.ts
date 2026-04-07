@@ -36,7 +36,6 @@ export type DateFormat = (typeof DATE_FORMAT)[keyof typeof DATE_FORMAT];
 export const MAX = {
   sources: 10,
   categories: 10,
-  agents: 5,
   preferences_chars: 2000,
 } as const;
 
