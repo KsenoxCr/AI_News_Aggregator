@@ -81,6 +81,12 @@ export function Keys<T extends object>(o: T): (keyof T)[] {
   return Object.keys(o) as (keyof T)[];
 }
 
+export function KeysRecord<T extends object>(obj: T): { [K in keyof T]: K } {
+  return Object.fromEntries(Object.keys(obj).map((k) => [k, k])) as {
+    [K in keyof T]: K;
+  };
+}
+
 export function ObjectKeysEnum<T extends Record<string, string>>(obj: T) {
   return z.enum(
     Object.keys(obj) as [keyof T & string, ...(keyof T & string)[]],
