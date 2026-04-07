@@ -6,7 +6,6 @@ import { AGENT, type AgentEndpoint } from "~/config/business";
 type EndpointType = "oai" | "anthropic";
 
 export interface OAIInput {
-  endpoint: string;
   model: string;
   messages: {
     role: "system" | "user" | "assistant";
@@ -88,6 +87,8 @@ export interface AgentAdapter {
 
 export const OAIAdapter: AgentAdapter = {
   endpoint: AGENT.SUPPORTED_ENDPOINTS.OpenAI,
+  // TODO: response format coercion
+
   sendRequest: async (input, apiKey) => {
     const client = new OpenAI({ apiKey });
     const i = input as OAIInput;
@@ -99,7 +100,10 @@ export const OAIAdapter: AgentAdapter = {
     if (!content) {
       return {
         status: "failure",
-        error: { code: "EMPTY_RESPONSE", message: "validation.agent.content.emptyResponse" },
+        error: {
+          code: "EMPTY_RESPONSE",
+          message: "validation.agent.content.emptyResponse",
+        },
       };
     }
     return {
@@ -117,7 +121,6 @@ export const OpenRouterAdapter: AgentAdapter = {
     const res = await client.chat.send({
       chatRequest: {
         model: i.model,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         messages: i.messages as any,
         stream: false,
       },
@@ -126,7 +129,10 @@ export const OpenRouterAdapter: AgentAdapter = {
     if (typeof content !== "string" || !content) {
       return {
         status: "failure",
-        error: { code: "EMPTY_RESPONSE", message: "validation.agent.content.emptyResponse" },
+        error: {
+          code: "EMPTY_RESPONSE",
+          message: "validation.agent.content.emptyResponse",
+        },
       };
     }
     return {
@@ -151,7 +157,10 @@ export const AnthropicAdapter: AgentAdapter = {
     if (!block || block.type !== "text") {
       return {
         status: "failure",
-        error: { code: "EMPTY_RESPONSE", message: "validation.agent.content.emptyResponse" },
+        error: {
+          code: "EMPTY_RESPONSE",
+          message: "validation.agent.content.emptyResponse",
+        },
       };
     }
     return {
