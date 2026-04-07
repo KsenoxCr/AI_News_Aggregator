@@ -3,7 +3,7 @@ import type { AgentEndpoint } from "~/config/business";
 import {
   AnthropicAdapter,
   OAIAdapter,
-  OpenRouterAdapter,
+  // OpenRouterAdapter,
   type AgentAdapter,
   type AgentInput,
 } from "../adapters/agent";
@@ -12,8 +12,8 @@ export function AgentAdapterFactory(endpoint: AgentEndpoint): AgentAdapter {
   switch (endpoint) {
     case AGENT.SUPPORTED_ENDPOINTS.OpenAI:
       return OAIAdapter;
-    case AGENT.SUPPORTED_ENDPOINTS.OpenRouter:
-      return OpenRouterAdapter;
+    // case AGENT.SUPPORTED_ENDPOINTS.OpenRouter:
+    //   return OpenRouterAdapter;
     case AGENT.SUPPORTED_ENDPOINTS.Anthropic:
       return AnthropicAdapter;
     default:
@@ -34,7 +34,7 @@ export function AgentInputFactory(
 
   switch (endpoint) {
     case AGENT.SUPPORTED_ENDPOINTS.OpenAI:
-    case AGENT.SUPPORTED_ENDPOINTS.OpenRouter:
+      // case AGENT.SUPPORTED_ENDPOINTS.OpenRouter:
       return {
         endpoint,
         model,

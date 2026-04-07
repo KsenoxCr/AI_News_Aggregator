@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
-import { OpenRouter } from "@openrouter/sdk";
+// import { OpenRouter } from "@openrouter/sdk";
 import { AGENT, type AgentEndpoint } from "~/config/business";
 
 type EndpointType = "oai" | "anthropic";
@@ -113,34 +113,34 @@ export const OAIAdapter: AgentAdapter = {
   },
 };
 
-export const OpenRouterAdapter: AgentAdapter = {
-  endpoint: AGENT.SUPPORTED_ENDPOINTS.OpenRouter,
-  sendRequest: async (input, apiKey) => {
-    const client = new OpenRouter({ apiKey });
-    const i = input as OAIInput;
-    const res = await client.chat.send({
-      chatRequest: {
-        model: i.model,
-        messages: i.messages as any,
-        stream: false,
-      },
-    });
-    const content = res.choices[0]?.message.content;
-    if (typeof content !== "string" || !content) {
-      return {
-        status: "failure",
-        error: {
-          code: "EMPTY_RESPONSE",
-          message: "validation.agent.content.emptyResponse",
-        },
-      };
-    }
-    return {
-      status: "success",
-      response: { endpointType: "oai", content },
-    };
-  },
-};
+// export const OpenRouterAdapter: AgentAdapter = {
+//   endpoint: AGENT.SUPPORTED_ENDPOINTS.OpenRouter,
+//   sendRequest: async (input, apiKey) => {
+//     const client = new OpenRouter({ apiKey });
+//     const i = input as OAIInput;
+//     const res = await client.chat.send({
+//       chatRequest: {
+//         model: i.model,
+//         messages: i.messages as any,
+//         stream: false,
+//       },
+//     });
+//     const content = res.choices[0]?.message.content;
+//     if (typeof content !== "string" || !content) {
+//       return {
+//         status: "failure",
+//         error: {
+//           code: "EMPTY_RESPONSE",
+//           message: "validation.agent.content.emptyResponse",
+//         },
+//       };
+//     }
+//     return {
+//       status: "success",
+//       response: { endpointType: "oai", content },
+//     };
+//   },
+// };
 
 export const AnthropicAdapter: AgentAdapter = {
   endpoint: AGENT.SUPPORTED_ENDPOINTS.Anthropic,
