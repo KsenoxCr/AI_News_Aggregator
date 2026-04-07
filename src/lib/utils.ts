@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { DATE_FORMAT, type DateFormat } from "~/config/business";
+import z from "zod";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -74,4 +75,14 @@ export function formatDate(date: Date, dateFormat: DateFormat): string {
       const _exhaustive: never = dateFormat;
       throw new Error(`Unhandled date format: ${_exhaustive}`);
   }
+}
+
+export function Keys<T extends object>(o: T): (keyof T)[] {
+  return Object.keys(o) as (keyof T)[];
+}
+
+export function ObjectKeysEnum<T extends Record<string, string>>(obj: T) {
+  return z.enum(
+    Object.keys(obj) as [keyof T & string, ...(keyof T & string)[]],
+  );
 }
