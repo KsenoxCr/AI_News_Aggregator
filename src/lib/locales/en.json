@@ -14,7 +14,8 @@
         "schemaMismatch": "The response from the agent did not match the expected format for this endpoint"
       },
       "content": {
-        "schemaMismatch": "Something went wrong while reading the AI's reply. The answer was received but could not be understood. Please try again or contact support if the issue persists."
+        "schemaMismatch": "Something went wrong while reading the AI's reply. The answer was received but could not be understood. Please try again or contact support if the issue persists.",
+        "emptyResponse": "The AI didn't return an answer. This can happen occasionally — please try again."
       }
     },
     "source": {

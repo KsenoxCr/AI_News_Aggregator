@@ -14,7 +14,8 @@
         "schemaMismatch": "Agentin vastaus ei vastannut tämän päätepisteen odotettua muotoa"
       },
       "content": {
-        "schemaMismatch": "Tekoälyn vastausta ei voitu lukea oikein. Vastaus saatiin, mutta sitä ei pystytty tulkitsemaan. Yritä uudelleen tai ota yhteyttä tukeen, jos ongelma jatkuu."
+        "schemaMismatch": "Tekoälyn vastausta ei voitu lukea oikein. Vastaus saatiin, mutta sitä ei pystytty tulkitsemaan. Yritä uudelleen tai ota yhteyttä tukeen, jos ongelma jatkuu.",
+        "emptyResponse": "Tekoäly ei palauttanut vastausta. Tämä voi joskus tapahtua — yritä uudelleen."
       }
     },
     "source": {
