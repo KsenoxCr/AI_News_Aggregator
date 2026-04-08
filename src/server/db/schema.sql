@@ -99,13 +99,14 @@ CREATE TABLE news_digests (
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE digest_revisions (
-    id          VARCHAR(36)  PRIMARY KEY,
-    digest_id   VARCHAR(36)  NOT NULL,
-    revision    INT UNSIGNED NOT NULL,
-    agent_id    VARCHAR(36)  NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
-    title       TEXT         NOT NULL,
-    digest      LONGTEXT     NOT NULL,
-    created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id            VARCHAR(36)  PRIMARY KEY,
+    digest_id     VARCHAR(36)  NOT NULL,
+    revision      INT UNSIGNED NOT NULL,
+    agent_id      VARCHAR(36)  NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    title         TEXT         NOT NULL,
+    digest        LONGTEXT     NOT NULL,
+    input_tokens  INT UNSIGNED NOT NULL,
+    created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (digest_id) REFERENCES news_digests(id) ON DELETE CASCADE,
     UNIQUE KEY uq_digest_revision (digest_id, revision),
     INDEX idx_digest_revisions_digest (digest_id)

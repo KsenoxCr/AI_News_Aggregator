@@ -78,6 +78,7 @@ export interface DigestRevisions {
   digest: string;
   digest_id: string;
   id: string;
+  input_tokens: number;
   revision: number;
   title: string;
 }
