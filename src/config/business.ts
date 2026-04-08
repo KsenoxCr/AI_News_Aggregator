@@ -41,7 +41,6 @@ export const MAX = {
 
 const _AGENT_ENDPOINTS = {
   OpenAI: "https://api.openai.com/v1/chat/completions",
-  // OpenRouter: "https://openrouter.ai/api/v1/chat/completions",
   Anthropic: "https://api.anthropic.com/v1/messages",
 } as const;
 
@@ -51,6 +50,10 @@ export const AGENT = {
   RATE_LIMITS: {
     freeTier: {},
   },
+} as const;
+
+export const DIGEST = {
+  bootstrapMaxTokens: 800,
 } as const;
 
 export type AgentProvider =
