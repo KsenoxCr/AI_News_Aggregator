@@ -4,6 +4,7 @@ import type {
   BaseArticleSchema,
   ArticleWithCatsSchema,
   ClassificationSchema,
+  DigestsIntermediarySchema,
 } from "~/lib/validators/news";
 import type { Agents, Fetches, Sources } from "./gen_types";
 
@@ -28,6 +29,14 @@ export type Source = Pick<
   Pick<Fetches, "id" | "previous_etag">;
 
 export type Classified = z.infer<typeof ClassificationSchema>;
+
+export type DigestsIntermediary = z.infer<typeof DigestsIntermediarySchema>;
+
+export type PrevDigestHeader = { id: string; title: string };
+
+export type DigestRoutingResult =
+  | { status: "success"; routed: DigestsIntermediary }
+  | { status: "failure"; error: { code: string; message: string } };
 
 export type ClassifyArticlesResult =
   | {
