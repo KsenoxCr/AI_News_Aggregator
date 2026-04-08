@@ -27,6 +27,15 @@ export const ArticleWithCatsSchema = z.array(
 export const ArticleWithCatsSchemaFactory = (t: TFn) =>
   ArticleWithCatsSchema.min(0, t("validation.agent.content.schemaMismatch"));
 
+export const DigestsIntermediarySchema = z.array(
+  z.object({
+    article_id: z.string().uuid(),
+    digests: z
+      .array(z.union([z.string().uuid(), z.literal("new")]))
+      .min(1),
+  }),
+);
+
 export const DigestSchema = z.object({
   id: z.string().uuid(),
   user_id: z.string().uuid(),
