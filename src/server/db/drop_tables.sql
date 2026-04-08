@@ -2,6 +2,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS
   digest_sources,
+  digest_revisions,
   magic_link_tokens,
   news_digests,
   sessions,

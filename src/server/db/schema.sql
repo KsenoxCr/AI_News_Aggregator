@@ -89,15 +89,26 @@ CREATE TABLE cached_articles (
 CREATE TABLE news_digests (
     id            VARCHAR(36)  PRIMARY KEY,
     user_id       VARCHAR(36)  NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    agent_id      VARCHAR(36)  NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
     title         TEXT         NOT NULL,
-    summary       TEXT,
-    updated_at    TIMESTAMP         NOT NULL,
-    created_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expires_at    TIMESTAMP     NOT NULL,
+    updated_at    TIMESTAMP    NOT NULL,
+    created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expires_at    TIMESTAMP    NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     INDEX idx_summaries_user_date (user_id, updated_at),
     INDEX idx_summaries_expires (expires_at)
+) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE digest_revisions (
+    id          VARCHAR(36)  PRIMARY KEY,
+    digest_id   VARCHAR(36)  NOT NULL,
+    revision    INT UNSIGNED NOT NULL,
+    agent_id    VARCHAR(36)  NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+    title       TEXT         NOT NULL,
+    digest      LONGTEXT     NOT NULL,
+    created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (digest_id) REFERENCES news_digests(id) ON DELETE CASCADE,
+    UNIQUE KEY uq_digest_revision (digest_id, revision),
+    INDEX idx_digest_revisions_digest (digest_id)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE digest_sources (

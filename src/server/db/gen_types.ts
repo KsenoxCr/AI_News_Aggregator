@@ -72,12 +72,20 @@ export interface MagicLinkTokens {
   value: string;
 }
 
-export interface NewsDigests {
+export interface DigestRevisions {
   agent_id: string;
+  created_at: Generated<Date>;
+  digest: string;
+  digest_id: string;
+  id: string;
+  revision: number;
+  title: string;
+}
+
+export interface NewsDigests {
   created_at: Generated<Date>;
   expires_at: Date;
   id: string;
-  summary: string | null;
   title: string;
   updated_at: Date;
   user_id: string;
@@ -135,6 +143,7 @@ export interface DB {
   cached_articles: CachedArticles;
   categories: Categories;
   digest_categories: DigestCategories;
+  digest_revisions: DigestRevisions;
   digest_sources: DigestSources;
   fetches: Fetches;
   magic_link_tokens: MagicLinkTokens;
