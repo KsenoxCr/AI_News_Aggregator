@@ -67,7 +67,7 @@ export type AgentOutput<T extends EndpointType = EndpointType> = T extends "oai"
     ? AnthropicOutput
     : never;
 
-type ParseResponseResult =
+export type ParseResponseResult =
   | {
       status: "success";
       response: AgentOutput;
