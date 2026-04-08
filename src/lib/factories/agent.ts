@@ -8,23 +8,35 @@ import {
   type AgentInput,
 } from "../adapters/agent";
 
-export function AgentAdapterFactory(provider: AgentProvider): AgentAdapter {
+export function AgentAdapterFactory(
+  provider: AgentProvider,
+  apiKey: string,
+  model: string,
+): AgentAdapter {
+  let adapter: AgentAdapter;
+
   switch (provider) {
     case AGENT.PROVIDERS.OpenAI:
-      return OAIAdapter;
+      adapter = OAIAdapter;
+      break;
     // case AGENT.PROVIDERS.OpenRouter:
-    //   return OpenRouterAdapter;
+    //   adapter = OpenRouterAdapter;
+    //   break;
     case AGENT.PROVIDERS.Anthropic:
-      return AnthropicAdapter;
+      adapter = AnthropicAdapter;
+      break;
     default:
       const _exhaustive: never = provider;
       throw new Error(`Unhandled provider: ${provider}`);
   }
+
+  adapter.apiKey = apiKey;
+  adapter.model = model;
+  return adapter;
 }
 
 export function AgentInputFactory(
-  endpoint: AgentEndpoint,
-  model: string,
+  adapter: AgentAdapter,
   prompt: string,
   systemPrompt: string,
   // responseSchema?: string,
@@ -32,6 +44,7 @@ export function AgentInputFactory(
   // TODO: add responseSchema param if completion output schema coherence not reliable enough
   // (needs control flow for new OAI models -> Structured Outputs, old OAI Models -> JSON Mode,  non OAI but OAI request schema -> no response_format)
 
+  const { endpoint, model } = adapter;
   switch (endpoint) {
     case AGENT.ENDPOINTS.OpenAI:
       // case AGENT.ENDPOINTS.OpenRouter:
