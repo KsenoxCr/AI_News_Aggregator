@@ -1,6 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
-// import { OpenRouter } from "@openrouter/sdk";
 import { AGENT, type AgentEndpoint } from "~/config/business";
 
 type EndpointType = "oai" | "anthropic";
@@ -41,6 +40,13 @@ export interface AnthropicInput {
   stop_sequences?: string[];
   top_p?: number;
   top_k?: number;
+}
+
+export interface RateLimits {
+  RPI: number;
+  TPI: number;
+  RR: number;
+  TR: number;
 }
 
 interface OAIOutput {
@@ -86,12 +92,31 @@ type ValidateAPIKeyResult =
 
 export interface AgentAdapter {
   endpoint: AgentEndpoint;
+  rateLimits: RateLimits | null;
   sendRequest(input: AgentInput, apiKey: string): Promise<ParseResponseResult>;
   validateAPIKey(apiKey: string): Promise<ValidateAPIKeyResult>;
 }
 
+function ParseOAIInterval(s: string): number {
+  const h = s.match(/(\d+)h/);
+  const m = s.match(/(\d+)m(?!s)/);
+  const sec = s.match(/(\d+)s/);
+  const ms = s.match(/(\d+)ms/);
+  return (
+    (h ? parseInt(h[1]!) * 3_600_000 : 0) +
+    (m ? parseInt(m[1]!) * 60_000 : 0) +
+    (sec ? parseInt(sec[1]!) * 1_000 : 0) +
+    (ms ? parseInt(ms[1]!) : 0)
+  );
+}
+
+function ParseAnthropicReset(s: string | null): number {
+  return s ? Math.max(0, new Date(s).getTime() - Date.now()) : 0;
+}
+
 export const OAIAdapter: AgentAdapter = {
   endpoint: AGENT.ENDPOINTS.OpenAI,
+  rateLimits: null,
   // TODO: response format coercion
 
   validateAPIKey: async (apiKey) => {
@@ -106,13 +131,12 @@ export const OAIAdapter: AgentAdapter = {
       };
     }
   },
-  sendRequest: async (input, apiKey) => {
+  async sendRequest(input, apiKey) {
     const client = new OpenAI({ apiKey });
     const i = input as OAIInput;
-    const res = await client.chat.completions.create({
-      model: i.model,
-      messages: i.messages,
-    });
+    const { data: res, response } = await client.chat.completions
+      .create({ model: i.model, messages: i.messages })
+      .withResponse();
     const content = res.choices[0]?.message.content;
     if (!content) {
       return {
@@ -123,6 +147,16 @@ export const OAIAdapter: AgentAdapter = {
         },
       };
     }
+    this.rateLimits = {
+      RPI: parseInt(response.headers.get("x-ratelimit-limit-requests") ?? "0"),
+      TPI: parseInt(response.headers.get("x-ratelimit-limit-tokens") ?? "0"),
+      RR: ParseOAIInterval(
+        response.headers.get("x-ratelimit-reset-requests") ?? "0s",
+      ),
+      TR: ParseOAIInterval(
+        response.headers.get("x-ratelimit-reset-tokens") ?? "0s",
+      ),
+    };
     return {
       status: "success",
       response: { endpointType: "oai", content },
@@ -130,37 +164,9 @@ export const OAIAdapter: AgentAdapter = {
   },
 };
 
-// export const OpenRouterAdapter: AgentAdapter = {
-//   endpoint: AGENT.SUPPORTED_ENDPOINTS.OpenRouter,
-//   sendRequest: async (input, apiKey) => {
-//     const client = new OpenRouter({ apiKey });
-//     const i = input as OAIInput;
-//     const res = await client.chat.send({
-//       chatRequest: {
-//         model: i.model,
-//         messages: i.messages as any,
-//         stream: false,
-//       },
-//     });
-//     const content = res.choices[0]?.message.content;
-//     if (typeof content !== "string" || !content) {
-//       return {
-//         status: "failure",
-//         error: {
-//           code: "EMPTY_RESPONSE",
-//           message: "validation.agent.content.emptyResponse",
-//         },
-//       };
-//     }
-//     return {
-//       status: "success",
-//       response: { endpointType: "oai", content },
-//     };
-//   },
-// };
-
 export const AnthropicAdapter: AgentAdapter = {
   endpoint: AGENT.ENDPOINTS.Anthropic,
+  rateLimits: null,
   validateAPIKey: async (apiKey) => {
     try {
       const client = new Anthropic({ apiKey });
@@ -173,15 +179,19 @@ export const AnthropicAdapter: AgentAdapter = {
       };
     }
   },
-  sendRequest: async (input, apiKey) => {
+  async sendRequest(input, apiKey) {
+    const safetyBuffer = 50; // ms
+
     const client = new Anthropic({ apiKey });
     const i = input as AnthropicInput;
-    const res = await client.messages.create({
-      model: i.model,
-      messages: i.messages,
-      max_tokens: i.max_tokens,
-      ...(i.system && { system: i.system }),
-    });
+    const { data: res, response } = await client.messages
+      .create({
+        model: i.model,
+        messages: i.messages,
+        max_tokens: i.max_tokens,
+        ...(i.system && { system: i.system }),
+      })
+      .withResponse();
     const block = res.content[0];
     if (!block || block.type !== "text") {
       return {
@@ -192,6 +202,22 @@ export const AnthropicAdapter: AgentAdapter = {
         },
       };
     }
+    this.rateLimits = {
+      RPI: parseInt(
+        response.headers.get("anthropic-ratelimit-requests-limit") ?? "0",
+      ),
+      TPI: parseInt(
+        response.headers.get("anthropic-ratelimit-tokens-limit") ?? "0",
+      ),
+      RR:
+        ParseAnthropicReset(
+          response.headers.get("anthropic-ratelimit-requests-reset"),
+        ) + safetyBuffer,
+      TR:
+        ParseAnthropicReset(
+          response.headers.get("anthropic-ratelimit-tokens-reset"),
+        ) + safetyBuffer,
+    };
     return {
       status: "success",
       response: {
