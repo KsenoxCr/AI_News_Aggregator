@@ -9,7 +9,22 @@ An article may be routed to multiple existing digests, to "new", or to both simu
 Every input article must appear in the output exactly once with at least one digest assignment.
 You must respond only with valid JSON matching the specified output format — no prose, no explanation, no markdown.
 `.trim(),
-  prompt: `Route each article to one or more existing digests by their id, and/or assign "new" if the article represents a topic not covered by any existing digest. Every article must appear in the output with at least one assignment.`,
+  prompt: (articles: string, prevDigests: string, schemaString: string) =>
+    `
+Route each article to one or more existing digests by their id, and/or assign "new" if the article represents a topic not covered by any existing digest. Every article must appear in the output with at least one assignment.
+
+\`\`\`(articles)
+${articles}
+\`\`\`
+
+\`\`\`(existing digests)
+${prevDigests}
+\`\`\`
+
+\`\`\`(output format)
+${schemaString}
+\`\`\`
+`.trim(),
 };
 
 export const DIGEST_GENERATION = {
@@ -22,10 +37,23 @@ If a previous digest revision is provided: produce an updated revision that inco
 Write in clear, neutral prose. Do not reference the source article directly — the digest must read as a self-contained summary.
 You must respond only with valid JSON matching the specified output format — no prose, no explanation, no markdown.
 `.trim(),
-  prompt: `Given the article and the digest field below, produce the output digest. If digest is "new", create a fresh digest from the article. Otherwise, return an updated revision of the existing digest that incorporates the article's additional or corrected information.`,
-};
+  prompt: (article: string, digest: string, schemaString: string) =>
+    `
+Given the article and the digest field below, produce the output digest. If digest is "new", create a fresh digest from the article. Otherwise, return an updated revision of the existing digest that incorporates the article's additional or corrected information.
 
-// TODO: Swap prompts with prompt factories
+\`\`\`(article)
+${article}
+\`\`\`
+
+\`\`\`(digest)
+${digest}
+\`\`\`
+
+\`\`\`(output format)
+${schemaString}
+\`\`\`
+`.trim(),
+};
 
 export const CLASSIFICATION = {
   systemPrompt: `
@@ -36,6 +64,24 @@ You must respond only with valid JSON matching the specified output format — n
 Only assign categories you are certain apply. If no category clearly matches, return an empty array for that article.
 The purpose of classification is to filter articles that resonate with the user's chosen interests so that only relevant digests are generated.
 `.trim(),
-  prompt:
-    "Classify each article against the user's chosen categories. Assign all categories that confidently apply — an article may have multiple. Only include articles where at least one category matches with certainty.",
+  prompt: (
+    serializedArticles: string,
+    categories: string[],
+    schemaString: string,
+  ) =>
+    `
+Classify each article against the user's chosen categories. Assign all categories that confidently apply — an article may have multiple. Only include articles where at least one category matches with certainty.
+
+\`\`\`(input)
+${serializedArticles}
+\`\`\`
+
+\`\`\`(categories)
+[${categories}]
+\`\`\`
+
+\`\`\`(output format)
+${schemaString}
+\`\`\`
+`.trim(),
 };
