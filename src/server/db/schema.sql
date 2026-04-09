@@ -101,6 +101,7 @@ CREATE TABLE news_digests (
 CREATE TABLE digest_revisions (
     id            VARCHAR(36)  PRIMARY KEY,
     digest_id     VARCHAR(36)  NOT NULL,
+    article_id    VARCHAR(36)  NOT NULL REFERENCES cached_articles(id) ON DELETE CASCADE,
     revision      INT UNSIGNED NOT NULL,
     agent_id      VARCHAR(36)  NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
     title         TEXT         NOT NULL,

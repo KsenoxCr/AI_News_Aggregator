@@ -74,6 +74,7 @@ export interface MagicLinkTokens {
 
 export interface DigestRevisions {
   agent_id: string;
+  article_id: string;
   created_at: Generated<Date>;
   digest: string;
   digest_id: string;
