@@ -2,65 +2,46 @@ import assert from "node:assert/strict";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import Parser from "rss-parser";
 import { v5 as uuidv5 } from "uuid";
-import type { AgentEndpoint, DateFormat } from "~/config/business";
+import type { DateFormat } from "~/config/business";
+import { DIGEST } from "~/config/business";
 import { formatDate } from "~/lib/utils";
-import { ClassificationSchema } from "~/lib/validators/news";
+import {
+  ClassificationSchema,
+  DigestRevisionSchema,
+  DigestsIntermediarySchema,
+} from "~/lib/validators/news";
 import {
   createTRPCRouter,
   protectedTranslatedProcedure,
-  publicProcedure,
 } from "~/server/api/trpc";
 import { db } from "~/server/db/db";
-import type {
-  Agents,
-  ArticleCategories,
-  CachedArticles,
-  Fetches,
-  Sources,
-} from "~/server/db/gen_types";
-import type { AgentAdapter, AgentInput } from "~/lib/adapters/agent";
+import type { AgentAdapter, SendRequestResult } from "~/lib/adapters/agent";
 import { AgentAdapterFactory, AgentInputFactory } from "~/lib/factories/agent";
 import z from "zod";
+import type { AgentProvider } from "~/config/business";
+import {
+  CLASSIFICATION,
+  DIGEST_GENERATION,
+  DIGEST_ROUTING,
+} from "~/lib/prompts";
+import type {
+  Article,
+  ArticleWithCategories,
+  ArticleWithCategory,
+  ClassifyArticlesResult,
+  DigestRequest,
+  DigestRoutingResult,
+  PrevDigest,
+  PrevDigestHeader,
+  Source,
+  Translator,
+} from "~/server/db/types";
 
 // TODO: API Error Handling Mechanism for continuing generation where left of
 
+// TODO: Extract fns into semantically appropriate, discrete files
+
 // TODO: Swap "id" as "fetch_id" for semantical clarity or use retrieve distilled sources and fetches as discrete arrays
-type Source = Pick<
-  Sources,
-  "slug" | "url" | "date_filter_param" | "date_format"
-> &
-  Pick<Fetches, "id" | "previous_etag">;
-
-type Article = Omit<CachedArticles, "used"> & {
-  used: number;
-};
-
-type ArticleWithCategories = Article & {
-  categories: string[] | null;
-};
-
-type ArticleWithCategory = Article & {
-  category: string | null;
-};
-
-type Agent = Pick<Agents, "url" | "model" | "api_key">;
-
-type ClassifyArticlesResult =
-  | {
-      status: "success";
-      classified: ArticleWithCategories[];
-    }
-  | {
-      status: "failure";
-      error: {
-        code: string;
-        message: string;
-      };
-    };
-
-// TODO: update used field for cache items + fetch digest_generated = true
-
-// TODO: Add misses to cache
 
 async function NormalizeFeed(xmlFeed: string, source: Source) {
   const parser = new Parser({
@@ -104,7 +85,7 @@ async function NormalizeFeed(xmlFeed: string, source: Source) {
       link: item.link ?? "",
       author: item.creator ?? "",
       published_at: new Date(item.pubDate ?? ""),
-      used: 1,
+      used: 0,
     });
   });
 
@@ -170,8 +151,8 @@ async function FetchFeed(source: Source, date: Date) {
 }
 
 async function ClassifyArticles(
-  agent: Agent,
   agentAdapter: AgentAdapter,
+  _translator: Translator,
   articles: ArticleWithCategories[],
 ): Promise<ClassifyArticlesResult> {
   assert(
@@ -184,23 +165,9 @@ async function ClassifyArticles(
   const outputSchema = ClassificationSchema;
   const schemaString = JSON.stringify(zodToJsonSchema(outputSchema));
 
-  // TODO: LLM instructions
-
-  const systemPrompt = `
-
-  `;
-
-  const prompt = `
-
-
-    \`\`\`(input)
-    ${serializedArticles}
-    \`\`\`
-
-    \`\`\`(output format)
-    ${schemaString}
-    \`\`\`
-  `;
+  const categories = (
+    await db.selectFrom("user_categories").select("category").execute()
+  ).map((uc) => uc.category);
 
   // TODO: responseFormat logic for models with builtin schema coherence
 
@@ -211,54 +178,29 @@ async function ClassifyArticles(
   //   : null;
 
   const input = AgentInputFactory(
-    agentAdapter.endpoint,
-    agent.model,
-    prompt,
-    systemPrompt,
+    agentAdapter,
+    CLASSIFICATION.prompt(serializedArticles, categories, schemaString),
+    CLASSIFICATION.systemPrompt,
   );
 
-  // TODO: extract retry logic into helper fn if DRY applicable
+  // TODO: Maybe use zod schema for validation and on schema mismatch, append the error to the next attempts prompt so the model apprehends which fields mismatched
 
-  let classified: ArticleWithCategories[] | undefined;
+  const result = await agentAdapter.sendRequest(input, outputSchema);
 
-  const maxRetries = 1;
+  if (result.status === "failure") return result;
 
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const res = await CallAgent(input, agentAdapter, agent.api_key);
+  const classified = result.data;
 
-    if (res.status === "failure") return res;
+  assert(
+    Array.isArray(classified),
+    `[ClassifyArticles] LLM output must be a JSON array, got: ${typeof classified}`,
+  );
 
-    // TODO: Maybe use zod schema for validation and on schema mismatch, append the error to the next attempts prompt so the model apprehends which fields mismatched
+  console.log(
+    `${classified.length} articles classified out of ${articles.length} input articles`,
+  );
 
-    try {
-      const parsed: unknown = JSON.parse(res.response.content);
-      assert(
-        Array.isArray(parsed),
-        `[ClassifyArticles] LLM output must be a JSON array, got: ${typeof parsed}`,
-      );
-      assert(
-        parsed.length === articles.length,
-        `[ClassifyArticles] classified count (${parsed.length}) must equal input count (${articles.length})`,
-      );
-      classified = parsed as ArticleWithCategories[];
-    } catch (err) {
-      if (err instanceof assert.AssertionError) throw err;
-      // JSON.parse failure — retry will handle it
-    }
-  }
-
-  return classified
-    ? {
-        status: "success",
-        classified,
-      }
-    : {
-        status: "failure",
-        error: {
-          code: "SCHEMA_MISMATCH",
-          message: "validation.output.schemaMismatch",
-        },
-      };
+  return { status: "success", classified };
 }
 
 function UnflattedCached(cached: ArticleWithCategory[]) {
@@ -352,36 +294,191 @@ function ExtractUnusedArticles(
   return [cacheMisses, cachedCatz, cachedUncatz];
 }
 
-async function CallAgent(
-  input: AgentInput,
-  adapter: AgentAdapter,
-  apiKey: string,
-) {
-  // TODO: Rate limiting logic (use Anthropic headers for rate-limit discovery)
-
-  const response: Response = await fetch(input.endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...adapter.authHeaders(apiKey),
-    },
-    ...adapter.buildRequest(input),
+function StripCategories(articles: ArticleWithCategories[]) {
+  return articles.map((article) => {
+    const { categories, ...rest } = article;
+    return { ...rest };
   });
-
-  assert(
-    response.ok,
-    `[CallAgent] agent HTTP error ${response.status} ${response.statusText} for endpoint: ${input.endpoint}`,
-  );
-
-  // TODO: Status code based response handling
-
-  const raw = await response.text();
-  assert(raw.length > 0, "[CallAgent] agent returned an empty response body");
-
-  return adapter.parseResponse(raw);
 }
 
-function GenerateDigests(articles: ArticleWithCategories[]) {}
+// maxInputTokens: MAX(input_tokens) from digest_revisions, or DIGEST.bootstrapMaxTokens on first run
+// rateLimits must be non-null (populated by a prior sendRequest call) before either function is invoked
+
+function Chunk<T>(
+  items: T[],
+  maxInputTokens: number,
+  agentAdapter: AgentAdapter,
+): T[][] {
+  assert(
+    agentAdapter.rateLimits !== null,
+    "[Chunk] rateLimits not yet populated",
+  );
+  const { TPI, RPI } = agentAdapter.rateLimits;
+  const maxItems = Math.min(Math.floor(TPI / maxInputTokens), RPI);
+
+  // TODO: cleaner error message and handling (user-facing)
+
+  if (maxItems === 0) throw new Error("input doesn't fit within TPI");
+
+  const batches: T[][] = [];
+  for (let i = 0; i < items.length; i += maxItems) {
+    batches.push(items.slice(i, i + maxItems));
+  }
+  return batches;
+}
+
+async function* ProcessItems(
+  items: DigestRequest[],
+  maxInputTokens: number,
+  agentAdapter: AgentAdapter,
+): AsyncGenerator<SendRequestResult<z.infer<typeof DigestRevisionSchema>>> {
+  assert(
+    agentAdapter.rateLimits !== null,
+    "[ProcessItems] rateLimits not yet populated",
+  );
+  const batches = Chunk(items, maxInputTokens, agentAdapter);
+
+  for (let i = 0; i < batches.length; i++) {
+    if (i > 0) {
+      const { RR, TR } = agentAdapter.rateLimits!;
+      await new Promise<void>((resolve) =>
+        setTimeout(resolve, Math.max(RR, TR) + 10),
+      );
+    }
+
+    for (const item of batches[i]!) {
+      yield await agentAdapter.sendRequest(
+        AgentInputFactory(
+          agentAdapter,
+          DIGEST_GENERATION.prompt(
+            JSON.stringify(item.article),
+            JSON.stringify(item.digest),
+            JSON.stringify(zodToJsonSchema(DigestRevisionSchema)),
+          ),
+          DIGEST_GENERATION.systemPrompt,
+        ),
+        DigestRevisionSchema,
+      );
+    }
+  }
+}
+
+async function RouteArticlesToDigests(
+  agentAdapter: AgentAdapter,
+  articles: ArticleWithCategories[],
+  prevDigests: PrevDigestHeader[],
+): Promise<DigestRoutingResult> {
+  assert(
+    articles.length > 0,
+    "[RouteArticlesToDigests] articles array must be non-empty",
+  );
+
+  const outputSchema = DigestsIntermediarySchema;
+  const schemaString = JSON.stringify(zodToJsonSchema(outputSchema));
+
+  const input = AgentInputFactory(
+    agentAdapter,
+    DIGEST_ROUTING.prompt(
+      JSON.stringify(articles),
+      JSON.stringify(prevDigests),
+      schemaString,
+    ),
+    DIGEST_ROUTING.systemPrompt,
+  );
+
+  const result = await agentAdapter.sendRequest(input, outputSchema);
+
+  if (result.status === "failure") return result;
+
+  const routed = result.data;
+
+  assert(
+    Array.isArray(routed),
+    `[RouteArticlesToDigests] LLM output must be a JSON array, got: ${typeof routed}`,
+  );
+
+  console.log(
+    `[RouteArticlesToDigests] ${routed.length} articles routed out of ${articles.length} input articles`,
+  );
+
+  return { status: "success", routed };
+}
+
+async function* GenerateDigests(
+  agentAdapter: AgentAdapter,
+  _translator: Translator,
+  articles: ArticleWithCategories[],
+  prevDigests: PrevDigest[],
+) {
+  assert(
+    articles.length > 0,
+    "[GenerateDigests] articles array must be non-empty",
+  );
+
+  // Phase 1: route articles to existing digests or flag as new
+  const routingResult = await RouteArticlesToDigests(
+    agentAdapter,
+    articles,
+    prevDigests,
+  );
+
+  if (routingResult.status === "failure") {
+    yield routingResult;
+    return;
+  }
+
+  console.log(
+    `[GenerateDigests] phase 1 complete — ${routingResult.routed.length} articles routed`,
+  );
+
+  const prevDigestHeaders: PrevDigestHeader[] = prevDigests.map(
+    ({ id, title }) => ({ id, title }),
+  );
+
+  console.log(
+    `[GenerateDigests] prevDigestHeaders: ${prevDigestHeaders.length}`,
+  );
+
+  const maxRow = await db
+    .selectFrom("digest_revisions")
+    .select(({ fn }) => fn.max("input_tokens").as("max_input_tokens"))
+    .executeTakeFirst();
+
+  const maxInputTokens = maxRow?.max_input_tokens ?? DIGEST.bootstrapMaxTokens; // worst-case single-item token budget for phase 2 batching
+
+  console.log(`[GenerateDigests] maxInputTokens: ${maxInputTokens}`);
+
+  // Phase 2: build DigestRequest[] and generate/update digests
+
+  const prevDigestsMap = new Map<string, PrevDigest>(
+    prevDigests.map((d) => [d.id, d]),
+  );
+
+  const articlesMap = new Map(articles.map((a) => [a.id, a]));
+
+  const routed: DigestRequest[] = routingResult.routed.flatMap((entry) => {
+    const article = articlesMap.get(entry.article_id);
+    if (!article) return [];
+    return entry.digests
+      .map((d) => (d === "new" ? "new" : prevDigestsMap.get(d)))
+      .filter((d): d is PrevDigest | "new" => d !== undefined)
+      .map((digest) => ({ article, digest }));
+  });
+
+  console.log(`[GenerateDigests] phase 2: ${routed.length} digest requests`);
+
+  let count = 0;
+  for await (const result of ProcessItems(
+    routed,
+    maxInputTokens,
+    agentAdapter,
+  )) {
+    yield result;
+    count++;
+  }
+
+  console.log(`[GenerateDigests] phase 2 complete — ${count} results`);
+}
 
 // TODO: SoC
 
@@ -397,9 +494,23 @@ export const newsRouter = createTRPCRouter({
 
       const cached_digests = await db
         .selectFrom("news_digests")
+        .where("news_digests.user_id", "=", ctx.session.user.id)
+        .where("news_digests.updated_at", ">=", input)
+        .innerJoin(
+          "digest_revisions",
+          "digest_revisions.digest_id",
+          "news_digests.id",
+        )
+        .where(({ eb, selectFrom }) =>
+          eb(
+            "digest_revisions.revision",
+            "=",
+            selectFrom("digest_revisions as dr_max")
+              .select(({ fn }) => fn.max("dr_max.revision").as("max_rev"))
+              .whereRef("dr_max.digest_id", "=", "news_digests.id"),
+          ),
+        )
         .selectAll()
-        .where("user_id", "=", ctx.session.user.id)
-        .where("updated_at", ">=", input)
         .execute();
 
       console.log(
@@ -505,27 +616,14 @@ export const newsRouter = createTRPCRouter({
         .selectFrom("agents")
         .where("user_id", "=", ctx.session.user.id)
         .where("enabled", "=", 1)
-        .select(["url", "model", "api_key"])
+        .select(["id", "provider", "model", "api_key"])
         .executeTakeFirstOrThrow();
 
       const classified = [] as ArticleWithCategories[];
       let unclassified: ArticleWithCategories[];
 
       console.log(
-        `[generateFeed] phase 7: agent resolved — model: "${agent.model}", url: "${agent.url}"`,
-      );
-
-      const endpointMatch = agent.url.match(/(?<=https?:\/\/.*\/).*/);
-      assert(
-        endpointMatch !== null,
-        `[generateFeed] could not extract endpoint path from agent URL: "${agent.url}"`,
-      );
-      const endpoint = endpointMatch[0] as AgentEndpoint;
-
-      const agentAdapter = AgentAdapterFactory(endpoint);
-
-      console.log(
-        `[generateFeed] phase 8: endpoint extracted: "${endpointMatch?.[0]}"`,
+        `[generateFeed] phase 7: agent resolved — model: "${agent.model}", provider: "${agent.provider}"`,
       );
 
       if (cached.length === 0) {
@@ -539,7 +637,11 @@ export const newsRouter = createTRPCRouter({
           return;
         }
 
-        await db.insertInto("cached_articles").values(fetchedArray!).execute();
+        await db
+          .insertInto("cached_articles")
+          .values(StripCategories(fetchedArray))
+          .execute();
+
         console.log(
           `[generateFeed] phase 9a: inserted ${fetchedArray.length} articles into cache`,
         );
@@ -563,10 +665,12 @@ export const newsRouter = createTRPCRouter({
           `[generateFeed] phase 9b: cache misses: ${cacheMisses!.length}, cached+categorised: ${cachedCatz!.length}, cached+uncategorised: ${cachedUncatz!.length}`,
         );
 
-        // Then use agentic classification for cacheMisses & cachedUncatz (union)
-        // then unify newly_cassificied & cashedCatz for digest gen
+        if (cacheMisses!.length > 0)
+          await db
+            .insertInto("cached_articles")
+            .values(StripCategories(cacheMisses!))
+            .execute();
 
-        await db.insertInto("cached_articles").values(cacheMisses!).execute();
         console.log(
           `[generateFeed] phase 9b: inserted ${cacheMisses!.length} cache misses into DB`,
         );
@@ -578,10 +682,6 @@ export const newsRouter = createTRPCRouter({
           `[generateFeed] phase 9b: total unclassified (misses + uncategorised cache): ${unclassified.length}`,
         );
 
-        // generate from Cache misses + unused caches
-
-        // INFO: Rate limiting
-
         cachedCatz?.forEach((article) => classified.push(article));
         console.log(
           `[generateFeed] phase 9b: pre-classified from cache: ${classified.length}`,
@@ -592,7 +692,22 @@ export const newsRouter = createTRPCRouter({
         `[generateFeed] phase 10: calling ClassifyArticles on ${unclassified.length} articles`,
       );
 
-      const result = await ClassifyArticles(agent, agentAdapter, unclassified);
+      const agentAdapter = AgentAdapterFactory(agent.provider as AgentProvider);
+      const configured = await agentAdapter.configure(
+        agent.api_key,
+        agent.model,
+      );
+      if (configured.status === "failure") {
+        return yield {
+          status: "failure" as const,
+          error: {
+            code: configured.error.code,
+            message: ctx.t(configured.error.message),
+          },
+        };
+      }
+
+      const result = await ClassifyArticles(agentAdapter, ctx.t, unclassified);
 
       if (result.status === "failure") {
         console.log(
@@ -602,7 +717,7 @@ export const newsRouter = createTRPCRouter({
           status: result.status,
           error: {
             code: result.error.code,
-            message: ctx.t(result.error.code),
+            message: ctx.t(result.error.message),
           },
         };
       }
@@ -611,60 +726,134 @@ export const newsRouter = createTRPCRouter({
         `[generateFeed] phase 11: classification succeeded — ${result.classified.length} articles classified`,
       );
 
-      const categories = [] as ArticleCategories[];
-
-      result.classified.forEach((article) => {
-        // aggregate classified articles
-        classified.push(article);
-
-        // aggregate categories for db insert
-        article.categories?.forEach((category) =>
-          categories.push({
-            article_id: article.id,
-            category: category,
-          }),
+      if (result.classified.length > 0) {
+        const categories = result.classified.flatMap(
+          (article) =>
+            article.categories?.map((category) => ({
+              article_id: article.article_id,
+              category,
+            })) ?? [],
         );
-      });
 
-      const expectedCategoryCount = result.classified.reduce(
-        (sum, a) => sum + (a.categories?.length ?? 0),
-        0,
-      );
-      assert(
-        categories.length === expectedCategoryCount,
-        `[generateFeed] categories array length (${categories.length}) does not match sum of article.categories lengths (${expectedCategoryCount})`,
-      );
-      assert(
-        categories.every(
-          (c) =>
-            typeof c.article_id === "string" && typeof c.category === "string",
-        ),
-        "[generateFeed] malformed entry in categories array before DB insert",
-      );
+        unclassified.forEach((article) => {
+          const classifiedArticle = result.classified.find(
+            (a) => a.article_id === article.id,
+          );
+          if (classifiedArticle?.categories) {
+            classified.push({
+              ...article,
+              categories: classifiedArticle.categories,
+            });
+          }
+        });
+
+        const expectedCategoryCount = result.classified.reduce(
+          (sum, a) => sum + (a.categories?.length ?? 0),
+          0,
+        );
+        assert(
+          categories.length === expectedCategoryCount,
+          `[generateFeed] categories array length (${categories.length}) does not match sum of cArticle.categories lengths (${expectedCategoryCount})`,
+        );
+        assert(
+          categories.every(
+            (c) =>
+              typeof c.article_id === "string" &&
+              typeof c.category === "string",
+          ),
+          "[generateFeed] malformed entry in categories array before DB insert",
+        );
+
+        console.log(
+          `[generateFeed] phase 12: inserting ${categories.length} article_categories rows`,
+        );
+
+        await db
+          .insertInto("article_categories")
+          .ignore()
+          .values(categories)
+          .execute();
+
+        console.log("[generateFeed] phase 13: done — all DB writes complete");
+      }
+
+      const prevDigests = (await db
+        .selectFrom("news_digests")
+        .where("news_digests.user_id", "=", ctx.session.user.id)
+        .innerJoin(
+          "digest_revisions",
+          "digest_revisions.digest_id",
+          "news_digests.id",
+        )
+        .where(({ eb, selectFrom }) =>
+          eb(
+            "digest_revisions.revision",
+            "=",
+            selectFrom("digest_revisions as dr_max")
+              .select(({ fn }) => fn.max("dr_max.revision").as("max_rev"))
+              .whereRef("dr_max.digest_id", "=", "news_digests.id"),
+          ),
+        )
+        .select([
+          "news_digests.id",
+          "digest_revisions.title",
+          "digest_revisions.digest",
+        ])
+        .execute()) as PrevDigest[];
 
       console.log(
-        `[generateFeed] phase 12: inserting ${categories.length} article_categories rows`,
+        `[generateFeed] phase 14: retrieved ${prevDigests.length} existing digest headers`,
       );
 
-      await db.insertInto("article_categories").values(categories).execute();
+      // TODO: agentAdapter.sendRequest: returns metaData.inputTokens
 
-      console.log("[generateFeed] phase 13: done — all DB writes complete");
+      // TODO: prevDigests db select should return:
+      // digest_id
+      // article_id
+      // revision
+      // agent_id
+      // title
+      // digest
 
-      return;
+      // then coerce prevDigests to strippedPrevDigests, that should keep only:
+      // news_digests.id,
+      // digest_revisions.title,
+      // digest_revisions.digest,
 
-      // TODO: batching logic + yield return
-      GenerateDigests(classified);
+      // TODO: newRivisions as DigestRevisions[]
+      //
 
-      // TODO: Digests Generation
+      for await (const result of GenerateDigests(
+        agentAdapter,
+        ctx.t,
+        classified,
+        prevDigests,
+      )) {
+        if (result.status === "failure") {
+          return yield {
+            status: result.status,
+            error: result.error,
+          };
+        } else {
+          // TODO: push to newRevisions
+        }
+      }
 
-      // TODO: Update "used" field for articles
+      // INFO: Update GenerateDigests so result digests include mandatory fields for insert
+      // here: for revision #1s: construct news_digest aggregate for insert
+
+      // TODO: Transaction (2 parts):
+      // part 1. if (newRevision[i].revision === 1) -> insert news_digest + digest_categories derived from ${categories} with matching article_id
+      //         else -> check existing digest_categories of newRevisions.digest_id aggregate news_digest, add category from ${categories} with matching article_id if it doesnt exist already as digest_category of the revision's aggregate
+      //         for both cases -> insert newRevision into db
+      // part 2: Foreach article_id in newRevisions[].article_id -> update cached_article with matching id used field = true
+      // part 3. update fetch
+
+      // TODO: Frontend needs to swap old digests with their updated revisions if they were updated
 
       return yield {
         status: "success",
       };
     }),
-  testProcedure: publicProcedure.query(async () => {
-    console.log("test");
-  }),
   // viewDigest: protectedProcedure
 });
