@@ -34,6 +34,13 @@ export type DigestsIntermediary = z.infer<typeof DigestsIntermediarySchema>;
 
 export type PrevDigestHeader = { id: string; title: string };
 
+export type PrevDigest = PrevDigestHeader & { digest: string };
+
+export type DigestRequest = {
+  article: ArticleWithCategories;
+  digest: PrevDigest | "new";
+};
+
 export type DigestRoutingResult =
   | { status: "success"; routed: DigestsIntermediary }
   | { status: "failure"; error: { code: string; message: string } };
