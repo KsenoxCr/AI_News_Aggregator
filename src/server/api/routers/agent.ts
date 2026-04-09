@@ -34,10 +34,19 @@ export const agentRouter = createTRPCRouter({
 
       const agentId = crypto.randomUUID();
 
+      // TODO: Adapter into ctx for persistence and interoperability across procedures
+
+      // model to AddAgentSchemaFactory
+
       const agentAdapter = AgentAdapterFactory(
         validated.provider as AgentProvider,
       );
-      const validation = await agentAdapter.validateAPIKey(validated.api_key);
+      const validation = await agentAdapter.configure(
+        validated.api_key,
+        validated.model,
+      );
+
+      // TODO: Move validation to AgentAdapterFactory + translation to "validation.agent.config.invalidAPIKey"
 
       if (validation.status === "failure") {
         return {

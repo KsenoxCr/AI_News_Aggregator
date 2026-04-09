@@ -92,13 +92,17 @@ type ValidateAPIKeyResult =
   | { status: "success"; models: string[] }
   | { status: "failure"; error: { code: string; message: string } };
 
+// TODO: Update AgentAdapter so satisfies not required (fixed the errors)
+
 export interface AgentAdapter {
   endpoint: AgentEndpoint;
-  model: string;
-  apiKey: string;
+  _model: string;
+  _apiKey: string;
+  get model(): string;
+  get apiKey(): string;
   rateLimits: RateLimits | null;
+  configure(apiKey: string, model: string): Promise<ValidateAPIKeyResult>;
   sendRequest(input: AgentInput): Promise<ParseResponseResult>;
-  validateAPIKey(): Promise<ValidateAPIKeyResult>;
 }
 
 function ParseOAIInterval(s: string): number {
@@ -119,16 +123,27 @@ function ParseAnthropicReset(s: string | null): number {
 }
 
 export const OAIAdapter: AgentAdapter = {
-  endpoint: AGENT.ENDPOINTS.OpenAI,
-  model: "",
-  apiKey: "",
-  rateLimits: null,
+  endpoint: AGENT.ENDPOINTS.OpenAI as AgentEndpoint,
+  _model: "",
+  _apiKey: "",
+  get model() {
+    return this._model;
+  },
+  get apiKey() {
+    return this._apiKey;
+  },
+  rateLimits: null as RateLimits | null,
   // TODO: response format coercion
 
-  async validateAPIKey() {
+  async configure(
+    apiKey: string,
+    model: string,
+  ): Promise<ValidateAPIKeyResult> {
     try {
-      const client = new OpenAI({ apiKey: this.apiKey });
+      const client = new OpenAI({ apiKey });
       const page = await client.models.list();
+      this._apiKey = apiKey;
+      this._model = model;
       return { status: "success", models: page.data.map((m) => m.id) };
     } catch {
       return {
@@ -137,7 +152,7 @@ export const OAIAdapter: AgentAdapter = {
       };
     }
   },
-  async sendRequest(input) {
+  async sendRequest(input: AgentInput): Promise<ParseResponseResult> {
     const client = new OpenAI({ apiKey: this.apiKey });
     const i = input as OAIInput;
     const { data: res, response } = await client.chat.completions
@@ -156,10 +171,18 @@ export const OAIAdapter: AgentAdapter = {
     this.rateLimits = {
       RPI: parseInt(response.headers.get("x-ratelimit-limit-requests") ?? "0"),
       TPI: parseInt(response.headers.get("x-ratelimit-limit-tokens") ?? "0"),
-      requestsRemaining: parseInt(response.headers.get("x-ratelimit-remaining-requests") ?? "0"),
-      tokensRemaining: parseInt(response.headers.get("x-ratelimit-remaining-tokens") ?? "0"),
-      RR: ParseOAIInterval(response.headers.get("x-ratelimit-reset-requests") ?? "0s"),
-      TR: ParseOAIInterval(response.headers.get("x-ratelimit-reset-tokens") ?? "0s"),
+      requestsRemaining: parseInt(
+        response.headers.get("x-ratelimit-remaining-requests") ?? "0",
+      ),
+      tokensRemaining: parseInt(
+        response.headers.get("x-ratelimit-remaining-tokens") ?? "0",
+      ),
+      RR: ParseOAIInterval(
+        response.headers.get("x-ratelimit-reset-requests") ?? "0s",
+      ),
+      TR: ParseOAIInterval(
+        response.headers.get("x-ratelimit-reset-tokens") ?? "0s",
+      ),
     };
     return {
       status: "success",
@@ -169,15 +192,26 @@ export const OAIAdapter: AgentAdapter = {
 };
 
 export const AnthropicAdapter: AgentAdapter = {
-  endpoint: AGENT.ENDPOINTS.Anthropic,
-  model: "",
-  apiKey: "",
-  rateLimits: null,
+  endpoint: AGENT.ENDPOINTS.Anthropic as AgentEndpoint,
+  _model: "",
+  _apiKey: "",
+  get model() {
+    return this._model;
+  },
+  get apiKey() {
+    return this._apiKey;
+  },
+  rateLimits: null as RateLimits | null,
 
-  async validateAPIKey() {
+  async configure(
+    apiKey: string,
+    model: string,
+  ): Promise<ValidateAPIKeyResult> {
     try {
-      const client = new Anthropic({ apiKey: this.apiKey });
+      const client = new Anthropic({ apiKey });
       const page = await client.models.list();
+      this._apiKey = apiKey;
+      this._model = model;
       return { status: "success", models: page.data.map((m) => m.id) };
     } catch {
       return {
@@ -186,7 +220,7 @@ export const AnthropicAdapter: AgentAdapter = {
       };
     }
   },
-  async sendRequest(input) {
+  async sendRequest(input: AgentInput): Promise<ParseResponseResult> {
     const safetyBuffer = 50; // ms
 
     const client = new Anthropic({ apiKey: this.apiKey });
@@ -210,12 +244,26 @@ export const AnthropicAdapter: AgentAdapter = {
       };
     }
     this.rateLimits = {
-      RPI: parseInt(response.headers.get("anthropic-ratelimit-requests-limit") ?? "0"),
-      TPI: parseInt(response.headers.get("anthropic-ratelimit-tokens-limit") ?? "0"),
-      requestsRemaining: parseInt(response.headers.get("anthropic-ratelimit-requests-remaining") ?? "0"),
-      tokensRemaining: parseInt(response.headers.get("anthropic-ratelimit-tokens-remaining") ?? "0"),
-      RR: ParseAnthropicReset(response.headers.get("anthropic-ratelimit-requests-reset")) + safetyBuffer,
-      TR: ParseAnthropicReset(response.headers.get("anthropic-ratelimit-tokens-reset")) + safetyBuffer,
+      RPI: parseInt(
+        response.headers.get("anthropic-ratelimit-requests-limit") ?? "0",
+      ),
+      TPI: parseInt(
+        response.headers.get("anthropic-ratelimit-tokens-limit") ?? "0",
+      ),
+      requestsRemaining: parseInt(
+        response.headers.get("anthropic-ratelimit-requests-remaining") ?? "0",
+      ),
+      tokensRemaining: parseInt(
+        response.headers.get("anthropic-ratelimit-tokens-remaining") ?? "0",
+      ),
+      RR:
+        ParseAnthropicReset(
+          response.headers.get("anthropic-ratelimit-requests-reset"),
+        ) + safetyBuffer,
+      TR:
+        ParseAnthropicReset(
+          response.headers.get("anthropic-ratelimit-tokens-reset"),
+        ) + safetyBuffer,
     };
     return {
       status: "success",

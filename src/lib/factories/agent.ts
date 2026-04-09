@@ -8,31 +8,18 @@ import {
   type AgentInput,
 } from "../adapters/agent";
 
-export function AgentAdapterFactory(
-  provider: AgentProvider,
-  apiKey: string,
-  model: string,
-): AgentAdapter {
-  let adapter: AgentAdapter;
-
+export function AgentAdapterFactory(provider: AgentProvider): AgentAdapter {
   switch (provider) {
     case AGENT.PROVIDERS.OpenAI:
-      adapter = OAIAdapter;
-      break;
+      return OAIAdapter;
     // case AGENT.PROVIDERS.OpenRouter:
-    //   adapter = OpenRouterAdapter;
-    //   break;
+    //   return OpenRouterAdapter;
     case AGENT.PROVIDERS.Anthropic:
-      adapter = AnthropicAdapter;
-      break;
+      return AnthropicAdapter;
     default:
       const _exhaustive: never = provider;
       throw new Error(`Unhandled provider: ${provider}`);
   }
-
-  adapter.apiKey = apiKey;
-  adapter.model = model;
-  return adapter;
 }
 
 export function AgentInputFactory(
