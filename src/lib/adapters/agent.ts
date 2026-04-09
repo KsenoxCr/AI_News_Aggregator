@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
+import type { ZodType } from "zod";
 import { AGENT, type AgentEndpoint } from "~/config/business";
 
 type EndpointType = "oai" | "anthropic";
@@ -88,11 +89,13 @@ export type ParseResponseResult =
       };
     };
 
+export type SendRequestResult<T> =
+  | { status: "success"; data: T }
+  | { status: "failure"; error: { code: string; message: string } };
+
 type ValidateAPIKeyResult =
   | { status: "success"; models: string[] }
   | { status: "failure"; error: { code: string; message: string } };
-
-// TODO: Update AgentAdapter so satisfies not required (fixed the errors)
 
 export interface AgentAdapter {
   endpoint: AgentEndpoint;
@@ -102,7 +105,47 @@ export interface AgentAdapter {
   get apiKey(): string;
   rateLimits: RateLimits | null;
   configure(apiKey: string, model: string): Promise<ValidateAPIKeyResult>;
-  sendRequest(input: AgentInput): Promise<ParseResponseResult>;
+  sendRequest<T>(
+    input: AgentInput,
+    outputSchema: ZodType<T>,
+    maxRetries?: number,
+  ): Promise<SendRequestResult<T>>;
+}
+
+async function sendWithRetry<T>(
+  fetch: (input: AgentInput) => Promise<ParseResponseResult>,
+  input: AgentInput,
+  outputSchema: ZodType<T>,
+  maxRetries: number,
+): Promise<SendRequestResult<T>> {
+  const failed: SendRequestResult<T> = {
+    status: "failure",
+    error: {
+      code: "SCHEMA_MISMATCH",
+      message: "validation.agent.content.schemaMismatch",
+    },
+  };
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const res = await fetch(input);
+    if (res.status === "failure") continue;
+
+    let parsed;
+    try {
+      parsed = outputSchema.safeParse(JSON.parse(res.response.content));
+    } catch {
+      return failed;
+    }
+
+    if (parsed.error) {
+      if (attempt < maxRetries) continue;
+      return failed;
+    }
+
+    return { status: "success", data: parsed.data };
+  }
+
+  return failed;
 }
 
 function ParseOAIInterval(s: string): number {
@@ -152,42 +195,48 @@ export const OAIAdapter: AgentAdapter = {
       };
     }
   },
-  async sendRequest(input: AgentInput): Promise<ParseResponseResult> {
-    const client = new OpenAI({ apiKey: this.apiKey });
-    const i = input as OAIInput;
-    const { data: res, response } = await client.chat.completions
-      .create({ model: i.model, messages: i.messages })
-      .withResponse();
-    const content = res.choices[0]?.message.content;
-    if (!content) {
-      return {
-        status: "failure",
-        error: {
-          code: "EMPTY_RESPONSE",
-          message: "validation.agent.content.emptyResponse",
-        },
+  async sendRequest<T>(
+    input: AgentInput,
+    outputSchema: ZodType<T>,
+    maxRetries = 1,
+  ): Promise<SendRequestResult<T>> {
+    const fetch = async (i: AgentInput): Promise<ParseResponseResult> => {
+      const client = new OpenAI({ apiKey: this.apiKey });
+      const oaiInput = i as OAIInput;
+      const { data: res, response } = await client.chat.completions
+        .create({ model: oaiInput.model, messages: oaiInput.messages })
+        .withResponse();
+      const content = res.choices[0]?.message.content;
+      if (!content) {
+        return {
+          status: "failure",
+          error: {
+            code: "EMPTY_RESPONSE",
+            message: "validation.agent.content.schemaMismatch",
+          },
+        };
+      }
+      this.rateLimits = {
+        RPI: parseInt(
+          response.headers.get("x-ratelimit-limit-requests") ?? "0",
+        ),
+        TPI: parseInt(response.headers.get("x-ratelimit-limit-tokens") ?? "0"),
+        requestsRemaining: parseInt(
+          response.headers.get("x-ratelimit-remaining-requests") ?? "0",
+        ),
+        tokensRemaining: parseInt(
+          response.headers.get("x-ratelimit-remaining-tokens") ?? "0",
+        ),
+        RR: ParseOAIInterval(
+          response.headers.get("x-ratelimit-reset-requests") ?? "0s",
+        ),
+        TR: ParseOAIInterval(
+          response.headers.get("x-ratelimit-reset-tokens") ?? "0s",
+        ),
       };
-    }
-    this.rateLimits = {
-      RPI: parseInt(response.headers.get("x-ratelimit-limit-requests") ?? "0"),
-      TPI: parseInt(response.headers.get("x-ratelimit-limit-tokens") ?? "0"),
-      requestsRemaining: parseInt(
-        response.headers.get("x-ratelimit-remaining-requests") ?? "0",
-      ),
-      tokensRemaining: parseInt(
-        response.headers.get("x-ratelimit-remaining-tokens") ?? "0",
-      ),
-      RR: ParseOAIInterval(
-        response.headers.get("x-ratelimit-reset-requests") ?? "0s",
-      ),
-      TR: ParseOAIInterval(
-        response.headers.get("x-ratelimit-reset-tokens") ?? "0s",
-      ),
+      return { status: "success", response: { endpointType: "oai", content } };
     };
-    return {
-      status: "success",
-      response: { endpointType: "oai", content },
-    };
+    return sendWithRetry(fetch, input, outputSchema, maxRetries);
   },
 };
 
@@ -220,61 +269,67 @@ export const AnthropicAdapter: AgentAdapter = {
       };
     }
   },
-  async sendRequest(input: AgentInput): Promise<ParseResponseResult> {
+  async sendRequest<T>(
+    input: AgentInput,
+    outputSchema: ZodType<T>,
+    maxRetries = 1,
+  ): Promise<SendRequestResult<T>> {
     const safetyBuffer = 50; // ms
-
-    const client = new Anthropic({ apiKey: this.apiKey });
-    const i = input as AnthropicInput;
-    const { data: res, response } = await client.messages
-      .create({
-        model: i.model,
-        messages: i.messages,
-        max_tokens: i.max_tokens,
-        ...(i.system && { system: i.system }),
-      })
-      .withResponse();
-    const block = res.content[0];
-    if (!block || block.type !== "text") {
+    const fetch = async (i: AgentInput): Promise<ParseResponseResult> => {
+      const client = new Anthropic({ apiKey: this.apiKey });
+      const anthropicInput = i as AnthropicInput;
+      const { data: res, response } = await client.messages
+        .create({
+          model: anthropicInput.model,
+          messages: anthropicInput.messages,
+          max_tokens: anthropicInput.max_tokens,
+          ...(anthropicInput.system && { system: anthropicInput.system }),
+        })
+        .withResponse();
+      const block = res.content[0];
+      if (!block || block.type !== "text") {
+        return {
+          status: "failure",
+          error: {
+            code: "EMPTY_RESPONSE",
+            message: "validation.agent.content.schemaMismatch",
+          },
+        };
+      }
+      this.rateLimits = {
+        RPI: parseInt(
+          response.headers.get("anthropic-ratelimit-requests-limit") ?? "0",
+        ),
+        TPI: parseInt(
+          response.headers.get("anthropic-ratelimit-tokens-limit") ?? "0",
+        ),
+        requestsRemaining: parseInt(
+          response.headers.get("anthropic-ratelimit-requests-remaining") ?? "0",
+        ),
+        tokensRemaining: parseInt(
+          response.headers.get("anthropic-ratelimit-tokens-remaining") ?? "0",
+        ),
+        RR:
+          ParseAnthropicReset(
+            response.headers.get("anthropic-ratelimit-requests-reset"),
+          ) + safetyBuffer,
+        TR:
+          ParseAnthropicReset(
+            response.headers.get("anthropic-ratelimit-tokens-reset"),
+          ) + safetyBuffer,
+      };
       return {
-        status: "failure",
-        error: {
-          code: "EMPTY_RESPONSE",
-          message: "validation.agent.content.emptyResponse",
+        status: "success",
+        response: {
+          endpointType: "anthropic",
+          content: block.text,
+          usage: {
+            input_tokens: res.usage.input_tokens,
+            output_tokens: res.usage.output_tokens,
+          },
         },
       };
-    }
-    this.rateLimits = {
-      RPI: parseInt(
-        response.headers.get("anthropic-ratelimit-requests-limit") ?? "0",
-      ),
-      TPI: parseInt(
-        response.headers.get("anthropic-ratelimit-tokens-limit") ?? "0",
-      ),
-      requestsRemaining: parseInt(
-        response.headers.get("anthropic-ratelimit-requests-remaining") ?? "0",
-      ),
-      tokensRemaining: parseInt(
-        response.headers.get("anthropic-ratelimit-tokens-remaining") ?? "0",
-      ),
-      RR:
-        ParseAnthropicReset(
-          response.headers.get("anthropic-ratelimit-requests-reset"),
-        ) + safetyBuffer,
-      TR:
-        ParseAnthropicReset(
-          response.headers.get("anthropic-ratelimit-tokens-reset"),
-        ) + safetyBuffer,
     };
-    return {
-      status: "success",
-      response: {
-        endpointType: "anthropic",
-        content: block.text,
-        usage: {
-          input_tokens: res.usage.input_tokens,
-          output_tokens: res.usage.output_tokens,
-        },
-      },
-    };
+    return sendWithRetry(fetch, input, outputSchema, maxRetries);
   },
 };
