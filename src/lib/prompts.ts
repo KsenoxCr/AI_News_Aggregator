@@ -1,3 +1,5 @@
+// TODO: Add users freeform preferences int systemPrompts (append or overwrite based on users choice)
+
 export const DIGEST_ROUTING = {
   systemPrompt: `
 You are a digest routing engine.
@@ -9,6 +11,21 @@ You must respond only with valid JSON matching the specified output format — n
 `.trim(),
   prompt: `Route each article to one or more existing digests by their id, and/or assign "new" if the article represents a topic not covered by any existing digest. Every article must appear in the output with at least one assignment.`,
 };
+
+export const DIGEST_GENERATION = {
+  systemPrompt: `
+You are a digest generation engine.
+A digest is a concise, continuously-updated summary of a evolving topic, built from one or more source articles.
+You will receive one article and either an existing digest or the literal string "new".
+If the digest is "new": synthesise a fresh digest from the article alone. Give it a short, descriptive title.
+If a previous digest revision is provided: produce an updated revision that incorporates the article's information. Preserve accurate prior content, add new facts, and correct any information the article supersedes. Do not repeat information already present unless it needs correction. Keep the title unless the topic has materially shifted.
+Write in clear, neutral prose. Do not reference the source article directly — the digest must read as a self-contained summary.
+You must respond only with valid JSON matching the specified output format — no prose, no explanation, no markdown.
+`.trim(),
+  prompt: `Given the article and the digest field below, produce the output digest. If digest is "new", create a fresh digest from the article. Otherwise, return an updated revision of the existing digest that incorporates the article's additional or corrected information.`,
+};
+
+// TODO: Swap prompts with prompt factories
 
 export const CLASSIFICATION = {
   systemPrompt: `
