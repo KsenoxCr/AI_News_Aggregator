@@ -824,8 +824,6 @@ export const newsRouter = createTRPCRouter({
         `[generateFeed] phase 14: retrieved ${prevDigests.length} existing digest headers`,
       );
 
-      // TODO: agentAdapter.sendRequest: returns metaData.inputTokens
-
       // TODO: GenerateDigests: routing prompt instructing to reconcile with categories in mind + return obj (schema change) augmented with "additional_categories" field (string array, empty or populated)
 
       type NewDigest = {
@@ -861,7 +859,7 @@ export const newsRouter = createTRPCRouter({
       )) {
         if (result.status === "failure") return yield result;
 
-        const { item, data } = result;
+        const { item, data, meta } = result;
         const isNew = item.digest === "new";
         const digestId = isNew ? randomUUID() : (item.digest as PrevDigest).id;
         const revisionNumber = isNew
@@ -876,7 +874,7 @@ export const newsRouter = createTRPCRouter({
           agent_id: agent.id,
           title: data.title,
           digest: data.digest,
-          input_tokens: 0, // TODO: from sendRequest metadata
+          input_tokens: meta.inputTokens,
         };
 
         if (isNew) {

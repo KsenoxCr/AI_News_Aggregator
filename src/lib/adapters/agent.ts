@@ -90,7 +90,7 @@ export type ParseResponseResult =
     };
 
 export type SendRequestResult<T> =
-  | { status: "success"; data: T }
+  | { status: "success"; data: T; meta: { inputTokens: number } }
   | { status: "failure"; error: { code: string; message: string } };
 
 type ValidateAPIKeyResult =
@@ -142,7 +142,12 @@ async function sendWithRetry<T>(
       return failed;
     }
 
-    return { status: "success", data: parsed.data };
+    const inputTokens =
+      res.response.endpointType === "oai"
+        ? (res.response.usage?.prompt_tokens ?? 0)
+        : (res.response.usage?.input_tokens ?? 0);
+
+    return { status: "success", data: parsed.data, meta: { inputTokens } };
   }
 
   return failed;
