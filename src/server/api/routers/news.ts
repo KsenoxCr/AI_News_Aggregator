@@ -4,7 +4,7 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 import Parser from "rss-parser";
 import { v5 as uuidv5 } from "uuid";
 import type { DateFormat } from "~/config/business";
-import { DIGEST } from "~/config/business";
+import { MAX, DIGEST } from "~/config/business";
 import { formatDate } from "~/lib/utils";
 import {
   ClassificationSchema,
@@ -835,6 +835,7 @@ export const newsRouter = createTRPCRouter({
         expires_at: Date;
         updated_at: Date;
       };
+
       type NewRevision = {
         id: string;
         digest_id: string;
@@ -845,6 +846,7 @@ export const newsRouter = createTRPCRouter({
         digest: string;
         input_tokens: number;
       };
+
       type DigestCategory = { digest_id: string; category: string };
 
       const newDigestAggregates: NewDigest[] = [];
@@ -852,20 +854,20 @@ export const newsRouter = createTRPCRouter({
       const newRevisions: NewRevision[] = [];
       const updateRevisions = new Map<string, NewRevision[]>();
 
-      for await (const r of GenerateDigests(
+      for await (const result of GenerateDigests(
         agentAdapter,
         ctx.t,
         classified,
         prevDigests,
       )) {
-        if (r.status === "failure") {
-          return yield { status: r.status, error: r.error };
-        }
+        if (result.status === "failure") return yield result;
 
-        const { item, data } = r;
+        const { item, data } = result;
         const isNew = item.digest === "new";
-        const digestId = isNew ? randomUUID() : item.digest.id;
-        const revisionNumber = isNew ? 1 : item.digest.revision + 1;
+        const digestId = isNew ? randomUUID() : (item.digest as PrevDigest).id;
+        const revisionNumber = isNew
+          ? 1
+          : (item.digest as PrevDigest).revision + 1;
 
         const revision: NewRevision = {
           id: randomUUID(),
@@ -883,7 +885,7 @@ export const newsRouter = createTRPCRouter({
             id: digestId,
             title: data.title,
             user_id: ctx.session.user.id,
-            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            expires_at: new Date(Date.now() + MAX.timeframe),
             updated_at: new Date(),
           });
           item.article.categories?.forEach((category) =>
@@ -944,7 +946,11 @@ export const newsRouter = createTRPCRouter({
           await trx
             .updateTable("cached_articles")
             .set("used", 1)
-            .where("id", "in", newRevisions.map((r) => r.article_id))
+            .where(
+              "id",
+              "in",
+              newRevisions.map((result) => result.article_id),
+            )
             .execute();
 
           for (const digestId of updateRevisions.keys()) {
