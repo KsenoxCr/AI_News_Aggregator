@@ -427,6 +427,7 @@ async function* GenerateDigests(
       status: "success";
       item: DigestRequest;
       data: z.infer<typeof DigestRevisionSchema>;
+      meta: { inputTokens: number };
     }
 > {
   assert(
@@ -491,7 +492,7 @@ async function* GenerateDigests(
       yield { status: "failure", error: result.error };
       return;
     }
-    yield { status: "success", item, data: result.data };
+    yield { status: "success", item, data: result.data, meta: result.meta };
     count++;
   }
 
