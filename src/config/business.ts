@@ -37,6 +37,7 @@ export const MAX = {
   sources: 10,
   categories: 10,
   preferences_chars: 2000,
+  timeframe: 30 * 24 * 60 * 60 * 1000, // 30 days
 } as const;
 
 const _AGENT_ENDPOINTS = {
