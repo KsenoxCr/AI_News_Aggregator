@@ -7,11 +7,12 @@ Your task is to determine, for each article, whether it belongs to one or more e
 Digests are thematic collections of related articles. An article fits an existing digest if it is clearly on the same topic.
 An article may be routed to multiple existing digests, to "new", or to both simultaneously — they are not mutually exclusive.
 Every input article must appear in the output exactly once with at least one digest assignment.
+Each article carries a "categories" field — use these to inform routing decisions. An article should be routed to an existing digest only if their categories overlap or are closely related. When no existing digest shares a compatible category, assign "new".
 You must respond only with valid JSON matching the specified output format — no prose, no explanation, no markdown.
 `.trim(),
   prompt: (articles: string, prevDigests: string, schemaString: string) =>
     `
-Route each article to one or more existing digests by their id, and/or assign "new" if the article represents a topic not covered by any existing digest. Every article must appear in the output with at least one assignment.
+Route each article to one or more existing digests by their id, and/or assign "new" if the article represents a topic not covered by any existing digest. Use the article's categories to guide routing — prefer matches where categories align. Every article must appear in the output with at least one assignment.
 
 \`\`\`(articles)
 ${articles}
