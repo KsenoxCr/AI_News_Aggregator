@@ -25,7 +25,7 @@ export default async function LandingPage() {
         <LoginForm />
       </div>
       <Typography className="absolute bottom-5 left-5">
-        {BRAND.developer}, {BRAND.publishYear}
+        {BRAND.developer}, {BRAND.publishmentYear}
       </Typography>
     </main>
   );
