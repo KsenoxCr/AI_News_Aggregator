@@ -88,7 +88,6 @@ export interface NewsDigests {
   created_at: Generated<Date>;
   expires_at: Date;
   id: string;
-  title: string;
   updated_at: Date;
   user_id: string;
 }

@@ -89,7 +89,6 @@ CREATE TABLE cached_articles (
 CREATE TABLE news_digests ( -- TODO: rename to digest_aggregate
     id            VARCHAR(36)  PRIMARY KEY,
     user_id       VARCHAR(36)  NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    title         TEXT         NOT NULL,
     updated_at    TIMESTAMP    NOT NULL,
     created_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     expires_at    TIMESTAMP    NOT NULL,

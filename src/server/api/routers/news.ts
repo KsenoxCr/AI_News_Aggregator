@@ -824,15 +824,12 @@ export const newsRouter = createTRPCRouter({
         `[generateFeed] phase 14: retrieved ${prevDigests.length} existing digest headers`,
       );
 
-      // TODO: Remove title from news_digests (db schema + gen types)
-
       // TODO: agentAdapter.sendRequest: returns metaData.inputTokens
 
       // TODO: GenerateDigests: routing prompt instructing to reconcile with categories in mind + return obj (schema change) augmented with "additional_categories" field (string array, empty or populated)
 
       type NewDigest = {
         id: string;
-        title: string;
         user_id: string;
         expires_at: Date;
         updated_at: Date;
@@ -885,7 +882,6 @@ export const newsRouter = createTRPCRouter({
         if (isNew) {
           newDigestAggregates.push({
             id: digestId,
-            title: data.title,
             user_id: ctx.session.user.id,
             expires_at: new Date(Date.now() + MAX.timeframe),
             updated_at: new Date(),
