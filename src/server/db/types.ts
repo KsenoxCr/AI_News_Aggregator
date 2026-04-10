@@ -34,7 +34,7 @@ export type DigestsIntermediary = z.infer<typeof DigestsIntermediarySchema>;
 
 export type PrevDigestHeader = { id: string; title: string };
 
-export type PrevDigest = PrevDigestHeader & { digest: string };
+export type PrevDigest = PrevDigestHeader & { digest: string; revision: number };
 
 export type DigestRequest = {
   article: ArticleWithCategories;

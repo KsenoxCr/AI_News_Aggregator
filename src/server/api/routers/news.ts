@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import Parser from "rss-parser";
 import { v5 as uuidv5 } from "uuid";
@@ -333,12 +334,16 @@ async function* ProcessItems(
   items: DigestRequest[],
   maxInputTokens: number,
   agentAdapter: AgentAdapter,
-): AsyncGenerator<SendRequestResult<z.infer<typeof DigestRevisionSchema>>> {
+): AsyncGenerator<{
+  item: DigestRequest;
+  result: SendRequestResult<z.infer<typeof DigestRevisionSchema>>;
+}> {
   assert(
     agentAdapter.rateLimits !== null,
     "[ProcessItems] rateLimits not yet populated",
   );
   const batches = Chunk(items, maxInputTokens, agentAdapter);
+  const schemaString = JSON.stringify(zodToJsonSchema(DigestRevisionSchema));
 
   for (let i = 0; i < batches.length; i++) {
     if (i > 0) {
@@ -349,18 +354,19 @@ async function* ProcessItems(
     }
 
     for (const item of batches[i]!) {
-      yield await agentAdapter.sendRequest(
+      const result = await agentAdapter.sendRequest(
         AgentInputFactory(
           agentAdapter,
           DIGEST_GENERATION.prompt(
             JSON.stringify(item.article),
-            JSON.stringify(item.digest),
-            JSON.stringify(zodToJsonSchema(DigestRevisionSchema)),
+            item.digest === "new" ? "new" : JSON.stringify(item.digest),
+            schemaString,
           ),
           DIGEST_GENERATION.systemPrompt,
         ),
         DigestRevisionSchema,
       );
+      yield { item, result };
     }
   }
 }
@@ -457,8 +463,6 @@ async function* GenerateDigests(
   const prevDigestsMap = new Map<string, PrevDigest>(
     prevDigests.map((d) => [d.id, d]),
   );
-
-  // INFO: input digest should be enriched with digest_categories + routing prompt instructing to reconcile with categories in mind + return obj (schema change) augmented with "additional_categories" field (string array, empty or populated)
 
   const articlesMap = new Map(articles.map((a) => [a.id, a]));
 
@@ -811,9 +815,9 @@ export const newsRouter = createTRPCRouter({
         `[generateFeed] phase 14: retrieved ${prevDigests.length} existing digest headers`,
       );
 
-      // TODO: Remove title from news_digests (db schema + gen types) (separate commit message)
+      // TODO: Remove title from news_digests (db schema + gen types)
 
-      // TODO: agentAdapter.sendRequest: returns metaData.inputTokens (separate commit message)
+      // TODO: agentAdapter.sendRequest: returns metaData.inputTokens
 
       // TODO: prevDigests db select should return:
       // digest_id
@@ -823,21 +827,23 @@ export const newsRouter = createTRPCRouter({
       // title
       // digest
 
+      // TODO:
       // prevDigestsWithCats, select:
       // news_digests.id,
       // digest_revisions.title,
       // digest_revisions.digest,
       // categories: digest_categories.category[],
 
+      // TODO:
       // use prevDigestsWithCats for GenerateDigests
 
       // TODO: GenerateDigests: routing prompt instructing to reconcile with categories in mind + return obj (schema change) augmented with "additional_categories" field (string array, empty or populated)
 
+      // TODO:
       // newDigestAggregates as NewsDigests[]
       // newDigestCategories as DigestCategories[]
       // newRevisions as DigestRevisions[]
-
-      // updateRevisions as DigestRevisions[]
+      // updateRevisions as DigestRevisions Map, digest_id as index, categories as buckets
 
       for await (const result of GenerateDigests(
         agentAdapter,
@@ -853,13 +859,15 @@ export const newsRouter = createTRPCRouter({
         } else {
           // TODO: populate construct arrays for later db insertions:
           // ascertain newRevisisions revision count by checking if prevDigests has any digestRevisions with newRevision.article_id, if has, increment by 1, else 1.
-          // then if newRevision.revision === 1 -> create and push new news_digest into newDigestAggregates and update newRevision.digest_id to its id + push all ${categories} with matching article_id to newDigestCategories replacing article_id with digest_id
+          // then if newRevision.revision === 1 -> create and push new news_digest into newDigestAggregates and update newRevision.digest_id to its id + push all ${categories} with matching article_id to newDigestCategories replacing article_id with digest_id ({ digest_id, categories }[])
           // else if newRevision.revision > 1 -> push to updateRevisions
           // then (for both cases) push to newRevision into newRevisions
         }
       }
 
-      // TODO: insert updateRevisions new categories if they exist (if needed)
+      // TODO: AddMissingDigestCategories
+      // prevDigestCategories =  db select: digest_categories where digest_id contained in updateRevisions.digest_ids as { digest_id, category }
+      // match newDigestCategories not in prevDigestCategories, pop non-matches from newDigestCategories
 
       // TODO: Transaction :
       // part 1. insert newDigestAggregates into news_digests
