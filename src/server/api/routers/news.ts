@@ -414,6 +414,8 @@ async function RouteArticlesToDigests(
   return { status: "success", routed };
 }
 
+// TODO: Routing: digest <-> article should be cardinality of 1 to M -> hence GenererateDigests DigestRequest.article should be articles
+
 async function* GenerateDigests(
   agentAdapter: AgentAdapter,
   _translator: Translator,
@@ -888,22 +890,20 @@ export const newsRouter = createTRPCRouter({
             expires_at: new Date(Date.now() + MAX.timeframe),
             updated_at: new Date(),
           });
-          item.article.categories?.forEach((category) =>
-            newDigestCategories.push({ digest_id: digestId, category }),
-          );
         } else {
           const bucket = updateRevisions.get(digestId) ?? [];
           bucket.push(revision);
           updateRevisions.set(digestId, bucket);
-          item.article.categories?.forEach((category) =>
-            newDigestCategories.push({ digest_id: digestId, category }),
-          );
         }
+
+        item.article.categories?.forEach((category) =>
+          newDigestCategories.push({ digest_id: digestId, category }),
+        );
 
         newRevisions.push(revision);
       }
 
-      // AddMissingDigestCategories — strip categories already present on updated digests
+      // Filter missing digest categories - strip categories already present on updated digests
       if (updateRevisions.size > 0) {
         const updateDigestIds = [...updateRevisions.keys()];
         const prevDigestCategories = await db
