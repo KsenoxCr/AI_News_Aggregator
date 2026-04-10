@@ -35,6 +35,7 @@ export const DigestsIntermediarySchema = z.array(
 );
 
 export const DigestRevisionSchema = z.object({
+  article_id: z.string(),
   title: z.string(),
   digest: z.string(),
 });
