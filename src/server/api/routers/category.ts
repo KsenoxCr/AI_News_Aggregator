@@ -41,6 +41,7 @@ export const categoryRouter = createTRPCRouter({
 
       await db
         .insertInto("user_categories")
+        .ignore()
         .values({
           user_id: ctx.session.user.id,
           category: validated,
