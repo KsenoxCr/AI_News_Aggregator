@@ -419,21 +419,33 @@ async function* GenerateDigests(
   _translator: Translator,
   articles: ArticleWithCategories[],
   prevDigests: PrevDigest[],
-) {
+): AsyncGenerator<
+  | { status: "failure"; error: { code: string; message: string } }
+  | {
+      status: "success";
+      item: DigestRequest;
+      data: z.infer<typeof DigestRevisionSchema>;
+    }
+> {
   assert(
     articles.length > 0,
     "[GenerateDigests] articles array must be non-empty",
+  );
+
+  // Strip to { id, title } — avoid sending digest content into the routing prompt
+  const prevDigestHeaders: PrevDigestHeader[] = prevDigests.map(
+    ({ id, title }) => ({ id, title }),
   );
 
   // Phase 1: route articles to existing digests or flag as new
   const routingResult = await RouteArticlesToDigests(
     agentAdapter,
     articles,
-    prevDigests,
+    prevDigestHeaders,
   );
 
   if (routingResult.status === "failure") {
-    yield routingResult;
+    yield { status: "failure", error: routingResult.error };
     return;
   }
 
@@ -441,24 +453,14 @@ async function* GenerateDigests(
     `[GenerateDigests] phase 1 complete — ${routingResult.routed.length} articles routed`,
   );
 
-  const prevDigestHeaders: PrevDigestHeader[] = prevDigests.map(
-    ({ id, title }) => ({ id, title }),
-  );
-
-  console.log(
-    `[GenerateDigests] prevDigestHeaders: ${prevDigestHeaders.length}`,
-  );
-
   const maxRow = await db
     .selectFrom("digest_revisions")
     .select(({ fn }) => fn.max("input_tokens").as("max_input_tokens"))
     .executeTakeFirst();
 
-  const maxInputTokens = maxRow?.max_input_tokens ?? DIGEST.bootstrapMaxTokens; // worst-case single-item token budget for phase 2 batching
+  const maxInputTokens = maxRow?.max_input_tokens ?? DIGEST.bootstrapMaxTokens;
 
   console.log(`[GenerateDigests] maxInputTokens: ${maxInputTokens}`);
-
-  // Phase 2: build DigestRequest[] and generate/update digests
 
   const prevDigestsMap = new Map<string, PrevDigest>(
     prevDigests.map((d) => [d.id, d]),
@@ -478,12 +480,16 @@ async function* GenerateDigests(
   console.log(`[GenerateDigests] phase 2: ${routed.length} digest requests`);
 
   let count = 0;
-  for await (const result of ProcessItems(
+  for await (const { item, result } of ProcessItems(
     routed,
     maxInputTokens,
     agentAdapter,
   )) {
-    yield result;
+    if (result.status === "failure") {
+      yield { status: "failure", error: result.error };
+      return;
+    }
+    yield { status: "success", item, data: result.data };
     count++;
   }
 
@@ -808,6 +814,7 @@ export const newsRouter = createTRPCRouter({
           "news_digests.id",
           "digest_revisions.title",
           "digest_revisions.digest",
+          "digest_revisions.revision",
         ])
         .execute()) as PrevDigest[];
 
@@ -819,65 +826,138 @@ export const newsRouter = createTRPCRouter({
 
       // TODO: agentAdapter.sendRequest: returns metaData.inputTokens
 
-      // TODO: prevDigests db select should return:
-      // digest_id
-      // article_id
-      // revision
-      // agent_id
-      // title
-      // digest
-
-      // TODO:
-      // prevDigestsWithCats, select:
-      // news_digests.id,
-      // digest_revisions.title,
-      // digest_revisions.digest,
-      // categories: digest_categories.category[],
-
-      // TODO:
-      // use prevDigestsWithCats for GenerateDigests
-
       // TODO: GenerateDigests: routing prompt instructing to reconcile with categories in mind + return obj (schema change) augmented with "additional_categories" field (string array, empty or populated)
 
-      // TODO:
-      // newDigestAggregates as NewsDigests[]
-      // newDigestCategories as DigestCategories[]
-      // newRevisions as DigestRevisions[]
-      // updateRevisions as DigestRevisions Map, digest_id as index, categories as buckets
+      type NewDigest = {
+        id: string;
+        title: string;
+        user_id: string;
+        expires_at: Date;
+        updated_at: Date;
+      };
+      type NewRevision = {
+        id: string;
+        digest_id: string;
+        article_id: string;
+        revision: number;
+        agent_id: string;
+        title: string;
+        digest: string;
+        input_tokens: number;
+      };
+      type DigestCategory = { digest_id: string; category: string };
 
-      for await (const result of GenerateDigests(
+      const newDigestAggregates: NewDigest[] = [];
+      const newDigestCategories: DigestCategory[] = [];
+      const newRevisions: NewRevision[] = [];
+      const updateRevisions = new Map<string, NewRevision[]>();
+
+      for await (const r of GenerateDigests(
         agentAdapter,
         ctx.t,
         classified,
         prevDigests,
       )) {
-        if (result.status === "failure") {
-          return yield {
-            status: result.status,
-            error: result.error,
-          };
-        } else {
-          // TODO: populate construct arrays for later db insertions:
-          // ascertain newRevisisions revision count by checking if prevDigests has any digestRevisions with newRevision.article_id, if has, increment by 1, else 1.
-          // then if newRevision.revision === 1 -> create and push new news_digest into newDigestAggregates and update newRevision.digest_id to its id + push all ${categories} with matching article_id to newDigestCategories replacing article_id with digest_id ({ digest_id, categories }[])
-          // else if newRevision.revision > 1 -> push to updateRevisions
-          // then (for both cases) push to newRevision into newRevisions
+        if (r.status === "failure") {
+          return yield { status: r.status, error: r.error };
         }
+
+        const { item, data } = r;
+        const isNew = item.digest === "new";
+        const digestId = isNew ? randomUUID() : item.digest.id;
+        const revisionNumber = isNew ? 1 : item.digest.revision + 1;
+
+        const revision: NewRevision = {
+          id: randomUUID(),
+          digest_id: digestId,
+          article_id: item.article.id,
+          revision: revisionNumber,
+          agent_id: agent.id,
+          title: data.title,
+          digest: data.digest,
+          input_tokens: 0, // TODO: from sendRequest metadata
+        };
+
+        if (isNew) {
+          newDigestAggregates.push({
+            id: digestId,
+            title: data.title,
+            user_id: ctx.session.user.id,
+            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            updated_at: new Date(),
+          });
+          item.article.categories?.forEach((category) =>
+            newDigestCategories.push({ digest_id: digestId, category }),
+          );
+        } else {
+          const bucket = updateRevisions.get(digestId) ?? [];
+          bucket.push(revision);
+          updateRevisions.set(digestId, bucket);
+          item.article.categories?.forEach((category) =>
+            newDigestCategories.push({ digest_id: digestId, category }),
+          );
+        }
+
+        newRevisions.push(revision);
       }
 
-      // TODO: AddMissingDigestCategories
-      // prevDigestCategories =  db select: digest_categories where digest_id contained in updateRevisions.digest_ids as { digest_id, category }
-      // match newDigestCategories not in prevDigestCategories, pop non-matches from newDigestCategories
+      // AddMissingDigestCategories — strip categories already present on updated digests
+      if (updateRevisions.size > 0) {
+        const updateDigestIds = [...updateRevisions.keys()];
+        const prevDigestCategories = await db
+          .selectFrom("digest_categories")
+          .where("digest_id", "in", updateDigestIds)
+          .select(["digest_id", "category"])
+          .execute();
 
-      // TODO: Transaction :
-      // part 1. insert newDigestAggregates into news_digests
-      // part 2. insert newDigestCategories into digest_categories
-      // part 3. insert newRevision into digest_revisions
-      // part 4: Foreach article_id in newRevisions[].article_id -> update cached_article with matching id used field = true
+        const prevCatSet = new Set(
+          prevDigestCategories.map((c) => `${c.digest_id}:${c.category}`),
+        );
 
-      return yield {
-        status: "success",
-      };
+        const filtered = newDigestCategories.filter(
+          (c) =>
+            !updateDigestIds.includes(c.digest_id) ||
+            !prevCatSet.has(`${c.digest_id}:${c.category}`),
+        );
+        newDigestCategories.splice(0, newDigestCategories.length, ...filtered);
+      }
+
+      if (newRevisions.length > 0) {
+        await db.transaction().execute(async (trx) => {
+          if (newDigestAggregates.length > 0)
+            await trx
+              .insertInto("news_digests")
+              .values(newDigestAggregates)
+              .execute();
+
+          if (newDigestCategories.length > 0)
+            await trx
+              .insertInto("digest_categories")
+              .values(newDigestCategories)
+              .execute();
+
+          await trx
+            .insertInto("digest_revisions")
+            .values(newRevisions)
+            .execute();
+
+          await trx
+            .updateTable("cached_articles")
+            .set("used", 1)
+            .where("id", "in", newRevisions.map((r) => r.article_id))
+            .execute();
+
+          for (const digestId of updateRevisions.keys()) {
+            await trx
+              .updateTable("news_digests")
+              .set("updated_at", new Date())
+              .where("id", "=", digestId)
+              .execute();
+          }
+        });
+      }
+
+      return yield { status: "success" };
     }),
   // viewDigest: protectedProcedure
 });
