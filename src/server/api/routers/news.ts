@@ -825,8 +825,6 @@ export const newsRouter = createTRPCRouter({
         `[generateFeed] phase 14: retrieved ${prevDigests.length} existing digest headers`,
       );
 
-      // TODO: GenerateDigests: routing prompt instructing to reconcile with categories in mind + return obj (schema change) augmented with "additional_categories" field (string array, empty or populated)
-
       type NewDigest = {
         id: string;
         user_id: string;
@@ -852,6 +850,8 @@ export const newsRouter = createTRPCRouter({
       const newRevisions: NewRevision[] = [];
       const updateRevisions = new Map<string, NewRevision[]>();
 
+      let count = 1;
+
       for await (const result of GenerateDigests(
         agentAdapter,
         ctx.t,
@@ -859,6 +859,19 @@ export const newsRouter = createTRPCRouter({
         prevDigests,
       )) {
         if (result.status === "failure") return yield result;
+
+        // TODO: yield array of articles from all digest revisions of the aggregate
+
+        yield {
+          status: result.status,
+          digestRevision: {
+            title: result.data.title,
+            digest: result.data.digest,
+            article_id: result.data.article_id,
+          },
+        };
+
+        console.log(`digest #${count} out of ${classified.length} yielded`);
 
         const { item, data, meta } = result;
         const isNew = item.digest === "new";
@@ -896,6 +909,8 @@ export const newsRouter = createTRPCRouter({
         );
 
         newRevisions.push(revision);
+
+        count++;
       }
 
       // Filter missing digest categories - strip categories already present on updated digests
