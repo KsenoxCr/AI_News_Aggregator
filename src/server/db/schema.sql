@@ -68,7 +68,7 @@ CREATE TABLE sources (
   UNIQUE KEY (user_id, url)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-CREATE TABLE fetches (
+CREATE TABLE fetches ( -- TODO: Redundant, remove and refactor
   id                VARCHAR(36) NOT NULL PRIMARY KEY,
   source_id         VARCHAR(36) UNIQUE NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
   previous_etag     VARCHAR(255) DEFAULT NULL,
@@ -86,7 +86,7 @@ CREATE TABLE cached_articles (
     INDEX idx_published_at (published_at, used)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-CREATE TABLE news_digests (
+CREATE TABLE news_digests ( -- TODO: rename to digest_aggregate
     id            VARCHAR(36)  PRIMARY KEY,
     user_id       VARCHAR(36)  NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title         TEXT         NOT NULL,

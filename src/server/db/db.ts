@@ -1,7 +1,9 @@
-import { createPool } from 'mysql2'
-import { Kysely, MysqlDialect, } from 'kysely'
-import type { DB } from './types'
-import { env } from 'process'
+import { createPool } from "mysql2";
+import { Kysely, MysqlDialect } from "kysely";
+import type { DB } from "./types";
+import { env } from "process";
+
+// TODO: Add pooler for prod
 
 export const dialect = new MysqlDialect({
   pool: createPool({
@@ -11,12 +13,12 @@ export const dialect = new MysqlDialect({
     user: process.env.DB_USERNAME,
     password: process.env.DB_PASSWORD,
   }),
-})
+});
 
 // Singleton, HMR-resistant
 
-const globalForDb = globalThis as unknown as { db: Kysely<DB> | undefined }
+const globalForDb = globalThis as unknown as { db: Kysely<DB> | undefined };
 
-export const db = globalForDb.db ?? new Kysely<DB>({ dialect })
+export const db = globalForDb.db ?? new Kysely<DB>({ dialect });
 
-if (env.NODE_ENV !== 'production') globalForDb.db = db
+if (env.NODE_ENV !== "production") globalForDb.db = db;

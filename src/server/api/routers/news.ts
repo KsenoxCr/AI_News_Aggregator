@@ -43,6 +43,8 @@ import type {
 
 // TODO: Swap "id" as "fetch_id" for semantical clarity or use retrieve distilled sources and fetches as discrete arrays
 
+// TODO: Frontend needs to swap old digests with their updated revisions if they were updated
+
 async function NormalizeFeed(xmlFeed: string, source: Source) {
   const parser = new Parser({
     defaultRSS: 2.0,
@@ -376,6 +378,8 @@ async function RouteArticlesToDigests(
   const outputSchema = DigestsIntermediarySchema;
   const schemaString = JSON.stringify(zodToJsonSchema(outputSchema));
 
+  // TODO: Strip down articles by omitting fields: fetch_id, used + id as article_id
+
   const input = AgentInputFactory(
     agentAdapter,
     DIGEST_ROUTING.prompt(
@@ -453,6 +457,8 @@ async function* GenerateDigests(
   const prevDigestsMap = new Map<string, PrevDigest>(
     prevDigests.map((d) => [d.id, d]),
   );
+
+  // INFO: input digest should be enriched with digest_categories + routing prompt instructing to reconcile with categories in mind + return obj (schema change) augmented with "additional_categories" field (string array, empty or populated)
 
   const articlesMap = new Map(articles.map((a) => [a.id, a]));
 
@@ -805,7 +811,9 @@ export const newsRouter = createTRPCRouter({
         `[generateFeed] phase 14: retrieved ${prevDigests.length} existing digest headers`,
       );
 
-      // TODO: agentAdapter.sendRequest: returns metaData.inputTokens
+      // TODO: Remove title from news_digests (db schema + gen types) (separate commit message)
+
+      // TODO: agentAdapter.sendRequest: returns metaData.inputTokens (separate commit message)
 
       // TODO: prevDigests db select should return:
       // digest_id
@@ -815,13 +823,21 @@ export const newsRouter = createTRPCRouter({
       // title
       // digest
 
-      // then coerce prevDigests to strippedPrevDigests, that should keep only:
+      // prevDigestsWithCats, select:
       // news_digests.id,
       // digest_revisions.title,
       // digest_revisions.digest,
+      // categories: digest_categories.category[],
 
-      // TODO: newRivisions as DigestRevisions[]
-      //
+      // use prevDigestsWithCats for GenerateDigests
+
+      // TODO: GenerateDigests: routing prompt instructing to reconcile with categories in mind + return obj (schema change) augmented with "additional_categories" field (string array, empty or populated)
+
+      // newDigestAggregates as NewsDigests[]
+      // newDigestCategories as DigestCategories[]
+      // newRevisions as DigestRevisions[]
+
+      // updateRevisions as DigestRevisions[]
 
       for await (const result of GenerateDigests(
         agentAdapter,
@@ -835,21 +851,21 @@ export const newsRouter = createTRPCRouter({
             error: result.error,
           };
         } else {
-          // TODO: push to newRevisions
+          // TODO: populate construct arrays for later db insertions:
+          // ascertain newRevisisions revision count by checking if prevDigests has any digestRevisions with newRevision.article_id, if has, increment by 1, else 1.
+          // then if newRevision.revision === 1 -> create and push new news_digest into newDigestAggregates and update newRevision.digest_id to its id + push all ${categories} with matching article_id to newDigestCategories replacing article_id with digest_id
+          // else if newRevision.revision > 1 -> push to updateRevisions
+          // then (for both cases) push to newRevision into newRevisions
         }
       }
 
-      // INFO: Update GenerateDigests so result digests include mandatory fields for insert
-      // here: for revision #1s: construct news_digest aggregate for insert
+      // TODO: insert updateRevisions new categories if they exist (if needed)
 
-      // TODO: Transaction (2 parts):
-      // part 1. if (newRevision[i].revision === 1) -> insert news_digest + digest_categories derived from ${categories} with matching article_id
-      //         else -> check existing digest_categories of newRevisions.digest_id aggregate news_digest, add category from ${categories} with matching article_id if it doesnt exist already as digest_category of the revision's aggregate
-      //         for both cases -> insert newRevision into db
-      // part 2: Foreach article_id in newRevisions[].article_id -> update cached_article with matching id used field = true
-      // part 3. update fetch
-
-      // TODO: Frontend needs to swap old digests with their updated revisions if they were updated
+      // TODO: Transaction :
+      // part 1. insert newDigestAggregates into news_digests
+      // part 2. insert newDigestCategories into digest_categories
+      // part 3. insert newRevision into digest_revisions
+      // part 4: Foreach article_id in newRevisions[].article_id -> update cached_article with matching id used field = true
 
       return yield {
         status: "success",

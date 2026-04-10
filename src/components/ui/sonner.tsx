@@ -12,7 +12,9 @@ import {
 } from "@hugeicons/core-free-icons";
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme();
+  // FIX: Toast colorscheme not cohering with theme change
+
+  const { theme } = useTheme();
 
   return (
     <Sonner

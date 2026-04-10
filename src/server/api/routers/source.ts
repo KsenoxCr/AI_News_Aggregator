@@ -36,6 +36,8 @@ export const sourceRouter = createTRPCRouter({
         .where("user_id", "=", ctx.session.user.id)
         .executeTakeFirst();
 
+      // TODO: translate err msg
+
       if (Number(existingSources?.count ?? 0) >= MAX.sources) {
         return {
           status: "failure",
@@ -73,6 +75,8 @@ export const sourceRouter = createTRPCRouter({
         let errorCode,
           error = null;
 
+        // TODO: translate err msgs
+
         if (IsDuplicateEntry(err, "slug")) {
           errorCode = "CONFLICT";
           error = "Name already in use";
@@ -103,6 +107,8 @@ export const sourceRouter = createTRPCRouter({
         .where("id", "=", validated)
         .where("user_id", "=", ctx.session.user.id)
         .execute();
+
+      // TODO: add translated err msg
 
       if (result[0]!.numDeletedRows === 0n) {
         return {

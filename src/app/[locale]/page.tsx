@@ -4,6 +4,8 @@ import { BRAND } from "~/config/business";
 
 export const dynamic = "force-static";
 
+// TODO: Add Guard clause: already logged in -> redirect to feed
+
 export default async function LandingPage() {
   return (
     <main className="flex min-h-svh flex-col items-center justify-center px-6">
