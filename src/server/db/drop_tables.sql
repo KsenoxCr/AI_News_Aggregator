@@ -5,6 +5,7 @@ DROP TABLE IF EXISTS
   digest_revisions,
   magic_link_tokens,
   news_digests,
+  digest_revisions,
   sessions,
   categories,
   digest_categories,
