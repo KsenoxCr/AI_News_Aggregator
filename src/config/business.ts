@@ -66,7 +66,8 @@ export const DEFAULT = {
   ],
 } as const;
 
-export type AgentProvider =
-  (typeof AGENT.PROVIDERS)[keyof typeof AGENT.PROVIDERS];
+export const AGENT_PROVIDERS = Object.values(AGENT.PROVIDERS);
+
+export type AgentProvider = (typeof AGENT_PROVIDERS)[number];
 export type AgentEndpoint =
   (typeof AGENT.ENDPOINTS)[keyof typeof AGENT.ENDPOINTS];
