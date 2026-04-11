@@ -134,7 +134,25 @@ export const auth = betterAuth({
             user_id: user.id,
           }));
 
-          await db.insertInto("sources").values(sources).execute();
+          const allCategories = await db
+            .selectFrom("categories")
+            .select("slug")
+            .execute();
+
+          const defaultCategories = allCategories
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 4)
+            .map((c) => ({ user_id: user.id, category: c.slug }));
+
+          await Promise.all([
+            db.insertInto("sources").values(sources).execute(),
+            defaultCategories.length > 0
+              ? db
+                  .insertInto("user_categories")
+                  .values(defaultCategories)
+                  .execute()
+              : Promise.resolve(),
+          ]);
         },
       },
     },

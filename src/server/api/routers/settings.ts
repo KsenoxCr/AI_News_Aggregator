@@ -1,10 +1,11 @@
 import { z } from "zod";
 import {
   createTRPCRouter,
+  protectedProcedure,
   protectedTranslatedProcedure,
 } from "~/server/api/trpc";
 import { db } from "~/server/db/db";
-import { MAX } from "~/config/business";
+import { DEFAULT, MAX } from "~/config/business";
 import { SaveSettingsSchema } from "~/lib/validators/settings";
 import {
   AddSourceSchemaFactory,
@@ -13,9 +14,38 @@ import {
 import { IsDuplicateEntry } from "~/server/lib/util";
 
 export const settingsRouter = createTRPCRouter({
-  // TODO: settings.get — hydrate initial settings state (sources, categories, preferences, locale)
   // TODO: Feature: separate agents for classification & digest generation
-  save: protectedTranslatedProcedure
+  fetch: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
+
+    const [sources, allCategories, userCategories, user] = await Promise.all([
+      db.selectFrom("sources").selectAll().where("user_id", "=", userId).execute(),
+      db.selectFrom("categories").select("slug").execute(),
+      db.selectFrom("user_categories").select("category").where("user_id", "=", userId).execute(),
+      db
+        .selectFrom("users")
+        .select(["preferences", "locale"])
+        .where("id", "=", userId)
+        .executeTakeFirstOrThrow(),
+    ]);
+
+    const userCategorySet = new Set(userCategories.map((uc) => uc.category));
+
+    return {
+      status: "success" as const,
+      sources,
+      agent: null,
+      preferences: {
+        categories: allCategories.map((c) => ({
+          category: c.slug,
+          enabled: userCategorySet.has(c.slug),
+        })),
+        freeform: user.preferences ?? "",
+        locale: user.locale,
+      },
+    };
+  }),
+  save: protectedProcedure
     .input(SaveSettingsSchema)
     .mutation(async ({ input, ctx }) => {
       const userId = ctx.session.user.id;
