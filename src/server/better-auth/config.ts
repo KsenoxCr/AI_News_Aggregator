@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { getIp } from "better-auth/api";
 import { magicLink } from "better-auth/plugins";
 import { Resend } from "resend";
 import { MagicLinkEmail } from "~/emails/magic-link";
@@ -127,8 +128,28 @@ export const auth = betterAuth({
     },
   },
   databaseHooks: {
-    // TODO: update magic token entry used and usedAt
-
+    user: {
+      create: {
+        after: async (user) => {},
+      },
+    },
+    verification: {
+      update: {
+        after: async (verification, context) => {
+          await db
+            .updateTable("magic_link_tokens")
+            .set({
+              used: 1,
+              used_at: new Date(),
+              ip_address: context?.request
+                ? (getIp(context.request, auth.options) ?? null)
+                : null,
+            })
+            .where("token_hash", "=", verification.identifier)
+            .execute();
+        },
+      },
+    },
     session: {
       create: {
         before: async (session) => {
