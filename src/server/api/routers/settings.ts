@@ -121,13 +121,15 @@ export const settingsRouter = createTRPCRouter({
 
       return { status: "success" as const };
     }),
-  validateAPIKey: protectedProcedure
+  validateAPIKey: protectedTranslatedProcedure
     .input(z.object({ provider: z.string(), key: z.string() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ ctx, input }) => {
       const adapter = AgentAdapterFactory(input.provider as AgentProvider);
       const result = await adapter.validateAPIKey(input.key);
 
-      return result;
+      return result.status === "failure"
+        ? { status: "failure" as const, error: ctx.t(result.error.message) }
+        : result;
     }),
   addSource: protectedTranslatedProcedure
     .input(z.unknown())
