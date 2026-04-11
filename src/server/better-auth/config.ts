@@ -1,10 +1,11 @@
+import { randomUUID } from "node:crypto";
 import { betterAuth } from "better-auth";
 import { getIp } from "better-auth/api";
 import { magicLink } from "better-auth/plugins";
 import { Resend } from "resend";
 import { MagicLinkEmail } from "~/emails/magic-link";
 import { db, dialect } from "../db/db";
-import { AUTH, BRAND } from "~/config/business";
+import { AUTH, BRAND, DEFAULT } from "~/config/business";
 import { ChangeEmailEmail } from "~/emails/email-change";
 import { NotifyChangeEmail } from "~/emails/notify-change";
 
@@ -130,7 +131,21 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
-        after: async (user) => {},
+        after: async (user) => {
+          const sources = DEFAULT.sources.map((s) => ({
+            id: randomUUID(),
+            slug: s.slug,
+            url: s.url,
+            user_id: user.id,
+          }));
+
+          await db.insertInto("sources").values(sources).execute();
+
+          await db
+            .insertInto("fetches")
+            .values(sources.map((s) => ({ id: randomUUID(), source_id: s.id })))
+            .execute();
+        },
       },
     },
     verification: {
