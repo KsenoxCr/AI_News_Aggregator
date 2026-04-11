@@ -67,11 +67,6 @@ export const auth = betterAuth({
         defaultValue: "en",
         input: false,
       },
-      news_language: {
-        type: "string",
-        defaultValue: "en",
-        input: false,
-      },
     },
   },
   session: {

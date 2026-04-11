@@ -7,7 +7,6 @@ CREATE TABLE users (
     role            VARCHAR(5)   NOT NULL DEFAULT 'user',
     preferences     TEXT,
     locale          VARCHAR(10)  NOT NULL DEFAULT 'en',
-    news_language   VARCHAR(10)  NOT NULL DEFAULT 'en',
     selected_agent  VARCHAR(36) REFERENCES users(id) ON DELETE CASCADE,
     created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP

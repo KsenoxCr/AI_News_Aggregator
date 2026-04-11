@@ -126,7 +126,6 @@ export interface Users {
   image: string | null;
   locale: Generated<string>;
   name: string;
-  news_language: Generated<string>;
   preferences: string | null;
   role: Generated<string>;
   selected_agent: string | null;
