@@ -1,6 +1,15 @@
 import { z } from "zod";
 import { MAX } from "~/config/business";
 import { SUPPORTED_LOCALES } from "~/lib/i18n/routing";
+import type { TFn } from "./types";
+
+export const AddAPIKeySchemaFactory = (t: TFn) =>
+  z.object({
+    key: z
+      .string()
+      .min(1, t("validation.agent.config.apiKeyRequired"))
+      .max(512, t("validation.agent.config.apiKeyTooLong", { max: 512 })),
+  });
 
 export const SaveSettingsSchema = z.object({
   sources: z.array(
