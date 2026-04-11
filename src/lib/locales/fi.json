@@ -3,11 +3,11 @@
     "agent": {
       "config": {
         "nameRequired": "Nimi vaaditaan",
-        "nameTooLong": "Nimi saa olla enintään {{max}} merkkiä pitkä",
+        "nameTooLong": "Nimi saa olla enintään {max} merkkiä pitkä",
         "urlInvalid": "Kirjoita kelvollinen URL-osoite",
-        "urlTooLong": "URL-osoite saa olla enintään {{max}} merkkiä pitkä",
+        "urlTooLong": "URL-osoite saa olla enintään {max} merkkiä pitkä",
         "apiKeyRequired": "API-avain vaaditaan",
-        "apiKeyTooLong": "API-avain saa olla enintään {{max}} merkkiä pitkä",
+        "apiKeyTooLong": "API-avain saa olla enintään {max} merkkiä pitkä",
         "idInvalid": "Virheellinen agentin tunnus"
       },
       "response": {
@@ -20,20 +20,63 @@
     },
     "source": {
       "nameRequired": "Nimi vaaditaan",
-      "nameTooLong": "Nimi saa olla enintään {{max}} merkkiä pitkä",
+      "nameTooLong": "Nimi saa olla enintään {max} merkkiä pitkä",
       "urlInvalid": "Kirjoita kelvollinen URL-osoite",
-      "urlTooLong": "URL-osoite saa olla enintään {{max}} merkkiä pitkä",
-      "idInvalid": "Virheellinen lähteen tunnus"
+      "urlTooLong": "URL-osoite saa olla enintään {max} merkkiä pitkä",
+      "idInvalid": "Virheellinen lähteen tunnus",
+      "duplicateSlug": "Lähde tällä nimellä on jo olemassa",
+      "duplicateUrl": "Lähde tällä URL-osoitteella on jo olemassa"
     },
     "user": {
       "emailEmpty": "Sähköpostiosoite vaaditaan",
       "emailInvalid": "Kirjoita kelvollinen sähköpostiosoite",
       "preferencesEmpty": "Mieltymykset eivät voi olla tyhjät",
-      "preferencesTooLong": "Mieltymykset saavat olla enintään {{max}} merkkiä pitkät"
+      "preferencesTooLong": "Mieltymykset saavat olla enintään {max} merkkiä pitkät"
     },
     "category": {
       "slugRequired": "Kategoria vaaditaan",
-      "slugTooLong": "Kategorian tunniste saa olla enintään {{max}} merkkiä pitkä"
+      "slugTooLong": "Kategorian tunniste saa olla enintään {max} merkkiä pitkä"
+    }
+  },
+  "landing": {
+    "tagline": "Syötteesi, tekoälyn suodattamana. Vain se, mikä sinulle merkitsee.",
+    "login": {
+      "emailPlaceholder": "Syötä sähköpostiosoitteesi",
+      "submitButton": "Lähetä maaginen linkki",
+      "description": "Salasanaa ei tarvita. Lähetämme kirjautumislinkin sähköpostiisi.",
+      "magicLinkSent": "Maaginen linkki lähetetty osoitteeseen <email/>. Tarkista postilaatikkosi."
+    }
+  },
+  "settings": {
+    "title": "Asetukset",
+    "backToNews": "Takaisin uutisiin",
+    "language": {
+      "title": "Kieli"
+    },
+    "sources": {
+      "title": "Uutislähteet",
+      "addCustom": "Lisää oma lähde",
+      "namePlaceholder": "Nimi",
+      "urlPlaceholder": "Lähteen URL",
+      "add": "Lisää"
+    },
+    "aiModel": {
+      "title": "Tekoälymalli",
+      "apiKeyPlaceholder": "API-avain",
+      "add": "Lisää",
+      "models": "Mallit",
+      "waitingForKey": "Odotetaan API-avainta..."
+    },
+    "preferences": {
+      "title": "Mieltymykset",
+      "moreCategories": "Lisää kategorioita",
+      "freeformPlaceholder": "Kuvaile lisämieltymyksiäsi omin sanoin..."
+    },
+    "save": "Tallenna"
+  },
+  "success": {
+    "source": {
+      "added": "Lähde lisätty onnistuneesti"
     }
   },
   "errors": {

@@ -3,11 +3,11 @@
     "agent": {
       "config": {
         "nameRequired": "Name is required",
-        "nameTooLong": "Name must be {{max}} characters or less",
+        "nameTooLong": "Name must be {max} characters or less",
         "urlInvalid": "Please enter a valid URL",
-        "urlTooLong": "URL must be {{max}} characters or less",
+        "urlTooLong": "URL must be {max} characters or less",
         "apiKeyRequired": "API key is required",
-        "apiKeyTooLong": "API key must be {{max}} characters or less",
+        "apiKeyTooLong": "API key must be {max} characters or less",
         "idInvalid": "Invalid agent ID"
       },
       "response": {
@@ -20,20 +20,63 @@
     },
     "source": {
       "nameRequired": "Name is required",
-      "nameTooLong": "Name must be {{max}} characters or less",
+      "nameTooLong": "Name must be {max} characters or less",
       "urlInvalid": "Please enter a valid URL",
-      "urlTooLong": "URL must be {{max}} characters or less",
-      "idInvalid": "Invalid source ID"
+      "urlTooLong": "URL must be {max} characters or less",
+      "idInvalid": "Invalid source ID",
+      "duplicateSlug": "A source with that name already exists",
+      "duplicateUrl": "A source with that URL already exists"
     },
     "user": {
       "emailEmpty": "Email address is required",
       "emailInvalid": "Please enter a valid email address",
       "preferencesEmpty": "Preferences cannot be empty",
-      "preferencesTooLong": "Preferences must be {{max}} characters or less"
+      "preferencesTooLong": "Preferences must be {max} characters or less"
     },
     "category": {
       "slugRequired": "Category is required",
-      "slugTooLong": "Category slug must be {{max}} characters or less"
+      "slugTooLong": "Category slug must be {max} characters or less"
+    }
+  },
+  "landing": {
+    "tagline": "Your feeds, filtered by AI. Only what matters to you.",
+    "login": {
+      "emailPlaceholder": "Enter your email",
+      "submitButton": "Send Magic Link",
+      "description": "No password needed. We'll email you a sign-in link.",
+      "magicLinkSent": "Magic link sent to <email/>. Check your inbox."
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "backToNews": "Back to News",
+    "language": {
+      "title": "Language"
+    },
+    "sources": {
+      "title": "News Sources",
+      "addCustom": "Add Custom Source",
+      "namePlaceholder": "Name",
+      "urlPlaceholder": "Source URL",
+      "add": "Add"
+    },
+    "aiModel": {
+      "title": "AI Model",
+      "apiKeyPlaceholder": "API Key",
+      "add": "Add",
+      "models": "Models",
+      "waitingForKey": "Waiting for API key..."
+    },
+    "preferences": {
+      "title": "Preferences",
+      "moreCategories": "More categories",
+      "freeformPlaceholder": "Describe additional preferences in your own words..."
+    },
+    "save": "Save"
+  },
+  "success": {
+    "source": {
+      "added": "Source added successfully"
     }
   },
   "errors": {
