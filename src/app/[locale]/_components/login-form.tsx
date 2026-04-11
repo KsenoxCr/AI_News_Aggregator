@@ -41,9 +41,11 @@ export function LoginForm() {
     return (
       <div className="flex flex-col">
         <Typography variant="body-sm" color="muted" className="text-center">
-          Magic link sent to{" "}
-          <span className="text-foreground font-medium">{sentEmail}</span>.
-          Check your inbox.
+          {t.rich("landing.login.magicLinkSent", {
+            email: () => (
+              <span className="text-foreground font-medium">{sentEmail}</span>
+            ),
+          })}
         </Typography>
       </div>
     );
@@ -51,12 +53,16 @@ export function LoginForm() {
 
   return (
     <form action={login} className="flex flex-col gap-4">
-      <Input type="text" name="email" placeholder="Enter your email" />
+      <Input
+        type="text"
+        name="email"
+        placeholder={t("landing.login.emailPlaceholder")}
+      />
       <Button size="lg" type="submit" className="w-full">
-        Send Magic Link
+        {t("landing.login.submitButton")}
       </Button>
       <Typography variant="body-sm" color="muted" className="text-center">
-        No password needed. We&apos;ll email you a sign-in link.
+        {t("landing.login.description")}
       </Typography>
     </form>
   );

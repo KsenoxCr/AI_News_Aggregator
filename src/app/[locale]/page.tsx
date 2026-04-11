@@ -1,12 +1,12 @@
+import { getTranslations } from "next-intl/server";
 import { LoginForm } from "./_components/login-form";
 import { Typography } from "./_components/typography";
 import { BRAND } from "~/config/business";
 
-export const dynamic = "force-static";
-
 // TODO: Add Guard clause: already logged in -> redirect to feed
 
 export default async function LandingPage() {
+  const t = await getTranslations();
   return (
     <main className="flex min-h-svh flex-col items-center justify-center px-6">
       <div className="flex w-full max-w-xs flex-col gap-12 md:max-w-md">
@@ -19,7 +19,7 @@ export default async function LandingPage() {
             {BRAND.appName}
           </Typography>
           <Typography variant="body-sm" color="muted" className="text-center">
-            Your feeds, filtered by AI. Only what matters to you.
+            {t("landing.tagline")}
           </Typography>
         </div>
         <LoginForm />
