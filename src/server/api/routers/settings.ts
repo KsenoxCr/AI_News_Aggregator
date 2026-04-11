@@ -5,13 +5,17 @@ import {
   protectedTranslatedProcedure,
 } from "~/server/api/trpc";
 import { db } from "~/server/db/db";
-import { MAX } from "~/config/business";
-import { SaveSettingsSchema } from "~/lib/validators/settings";
+import {
+  AddAPIKeySchemaFactory,
+  SaveSettingsSchema,
+} from "~/lib/validators/settings";
 import {
   AddSourceSchemaFactory,
   RemoveSourceSchemaFactory,
 } from "~/lib/validators/source";
 import { IsDuplicateEntry } from "~/server/lib/util";
+import type { AgentProvider } from "~/config/business";
+import { AgentAdapterFactory } from "~/lib/factories/agent";
 
 export const settingsRouter = createTRPCRouter({
   // TODO: Feature: separate agents for classification & digest generation
@@ -117,25 +121,19 @@ export const settingsRouter = createTRPCRouter({
 
       return { status: "success" as const };
     }),
+  validateAPIKey: protectedProcedure
+    .input(z.object({ provider: z.string(), key: z.string() }))
+    .mutation(async ({ input }) => {
+      const adapter = AgentAdapterFactory(input.provider as AgentProvider);
+      const result = await adapter.validateAPIKey(input.key);
+
+      return result;
+    }),
   addSource: protectedTranslatedProcedure
     .input(z.unknown())
     .mutation(async ({ ctx, input }) => {
       const schema = AddSourceSchemaFactory(ctx.t);
       const validated = schema.parse(input);
-
-      const existingSources = await db
-        .selectFrom("sources")
-        .select(db.fn.count("id").as("count"))
-        .where("user_id", "=", ctx.session.user.id)
-        .executeTakeFirst();
-
-      if (Number(existingSources?.count ?? 0) >= MAX.sources) {
-        return {
-          status: "failure",
-          errorCode: "OUT_OF_BOUNDS",
-          error: "Maximum source limit reached",
-        };
-      }
 
       // TODO: Fetch-based feed format detection
       // TODO: translate err msgs
@@ -151,7 +149,7 @@ export const settingsRouter = createTRPCRouter({
             url: validated.url,
             user_id: ctx.session.user.id,
           })
-          .execute();
+          .executeTakeFirst();
       } catch (err: any) {
         if (IsDuplicateEntry(err, "slug"))
           return {
@@ -170,7 +168,10 @@ export const settingsRouter = createTRPCRouter({
         return { status: "failure", errorCode: err.code, error: err.message };
       }
 
-      return { status: "success", id: sourceId };
+      return {
+        status: "success",
+        source: { id: sourceId, slug: validated.slug, url: validated.url },
+      };
     }),
   removeSource: protectedTranslatedProcedure
     .input(z.unknown())

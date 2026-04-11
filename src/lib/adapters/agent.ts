@@ -104,6 +104,7 @@ export interface AgentAdapter {
   get model(): string;
   get apiKey(): string;
   rateLimits: RateLimits | null;
+  validateAPIKey(apiKey: string): Promise<ValidateAPIKeyResult>;
   configure(apiKey: string, model: string): Promise<ValidateAPIKeyResult>;
   sendRequest<T>(
     input: AgentInput,
@@ -183,15 +184,10 @@ export const OAIAdapter: AgentAdapter = {
   rateLimits: null as RateLimits | null,
   // TODO: response format coercion
 
-  async configure(
-    apiKey: string,
-    model: string,
-  ): Promise<ValidateAPIKeyResult> {
+  async validateAPIKey(apiKey: string): Promise<ValidateAPIKeyResult> {
     try {
       const client = new OpenAI({ apiKey });
       const page = await client.models.list();
-      this._apiKey = apiKey;
-      this._model = model;
       return { status: "success", models: page.data.map((m) => m.id) };
     } catch {
       return {
@@ -199,6 +195,17 @@ export const OAIAdapter: AgentAdapter = {
         error: { code: "UNAUTHORIZED", message: "errors.api.invalidApiKey" },
       };
     }
+  },
+  async configure(
+    apiKey: string,
+    model: string,
+  ): Promise<ValidateAPIKeyResult> {
+    const result = await this.validateAPIKey(apiKey);
+    if (result.status === "success") {
+      this._apiKey = apiKey;
+      this._model = model;
+    }
+    return result;
   },
   async sendRequest<T>(
     input: AgentInput,
@@ -245,6 +252,7 @@ export const OAIAdapter: AgentAdapter = {
   },
 };
 
+
 export const AnthropicAdapter: AgentAdapter = {
   endpoint: AGENT.ENDPOINTS.Anthropic as AgentEndpoint,
   _model: "",
@@ -257,15 +265,10 @@ export const AnthropicAdapter: AgentAdapter = {
   },
   rateLimits: null as RateLimits | null,
 
-  async configure(
-    apiKey: string,
-    model: string,
-  ): Promise<ValidateAPIKeyResult> {
+  async validateAPIKey(apiKey: string): Promise<ValidateAPIKeyResult> {
     try {
       const client = new Anthropic({ apiKey });
       const page = await client.models.list();
-      this._apiKey = apiKey;
-      this._model = model;
       return { status: "success", models: page.data.map((m) => m.id) };
     } catch {
       return {
@@ -273,6 +276,17 @@ export const AnthropicAdapter: AgentAdapter = {
         error: { code: "UNAUTHORIZED", message: "errors.api.invalidApiKey" },
       };
     }
+  },
+  async configure(
+    apiKey: string,
+    model: string,
+  ): Promise<ValidateAPIKeyResult> {
+    const result = await this.validateAPIKey(apiKey);
+    if (result.status === "success") {
+      this._apiKey = apiKey;
+      this._model = model;
+    }
+    return result;
   },
   async sendRequest<T>(
     input: AgentInput,
