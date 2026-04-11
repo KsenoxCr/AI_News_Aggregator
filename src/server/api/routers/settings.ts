@@ -5,7 +5,7 @@ import {
   protectedTranslatedProcedure,
 } from "~/server/api/trpc";
 import { db } from "~/server/db/db";
-import { DEFAULT, MAX } from "~/config/business";
+import { MAX } from "~/config/business";
 import { SaveSettingsSchema } from "~/lib/validators/settings";
 import {
   AddSourceSchemaFactory,
@@ -18,10 +18,20 @@ export const settingsRouter = createTRPCRouter({
   fetch: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.session.user.id;
 
+    // TODO: select agents
+
     const [sources, allCategories, userCategories, user] = await Promise.all([
-      db.selectFrom("sources").selectAll().where("user_id", "=", userId).execute(),
+      db
+        .selectFrom("sources")
+        .selectAll()
+        .where("user_id", "=", userId)
+        .execute(),
       db.selectFrom("categories").select("slug").execute(),
-      db.selectFrom("user_categories").select("category").where("user_id", "=", userId).execute(),
+      db
+        .selectFrom("user_categories")
+        .select("category")
+        .where("user_id", "=", userId)
+        .execute(),
       db
         .selectFrom("users")
         .select(["preferences", "locale"])
