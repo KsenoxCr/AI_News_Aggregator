@@ -49,28 +49,17 @@ export const sourceRouter = createTRPCRouter({
       // TODO: Fetch-based feed format detection
 
       const sourceId = crypto.randomUUID();
-      const fetchId = crypto.randomUUID();
 
       try {
-        await db.transaction().execute(async (trx) => {
-          await trx
-            .insertInto("sources")
-            .values({
-              id: sourceId,
-              slug: validated.slug,
-              url: validated.url,
-              user_id: ctx.session.user.id,
-            })
-            .execute();
-
-          await trx
-            .insertInto("fetches")
-            .values({
-              id: fetchId,
-              source_id: sourceId,
-            })
-            .execute();
-        });
+        await db
+          .insertInto("sources")
+          .values({
+            id: sourceId,
+            slug: validated.slug,
+            url: validated.url,
+            user_id: ctx.session.user.id,
+          })
+          .execute();
       } catch (err: any) {
         let errorCode,
           error = null;

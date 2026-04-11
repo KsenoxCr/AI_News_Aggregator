@@ -42,8 +42,6 @@ import type {
 
 // TODO: Extract fns into semantically appropriate, discrete files
 
-// TODO: Swap "id" as "fetch_id" for semantical clarity or use retrieve distilled sources and fetches as discrete arrays
-
 // TODO: Frontend needs to swap old digests with their updated revisions if they were updated
 
 async function NormalizeFeed(xmlFeed: string, source: Source) {
@@ -83,7 +81,7 @@ async function NormalizeFeed(xmlFeed: string, source: Source) {
 
     feed.push({
       id: id,
-      fetch_id: source.id,
+      source_id: source.id,
       title: item.title ?? "",
       link: item.link ?? "",
       author: item.creator ?? "",
@@ -101,8 +99,8 @@ async function NormalizeFeed(xmlFeed: string, source: Source) {
     "[NormalizeFeed] every article must have a valid UUID id",
   );
   assert(
-    feed.every((a) => a.fetch_id === source.id),
-    "[NormalizeFeed] every article fetch_id must equal source.id",
+    feed.every((a) => a.source_id === source.id),
+    "[NormalizeFeed] every article source_id must equal source.id",
   );
 
   return {
@@ -142,7 +140,7 @@ async function FetchFeed(source: Source, date: Date) {
   // TODO: updating etag must be atomic with fetched insertion. if etag inserted && fetched insertion fails -> subsequent calls: wont fetch resource with identical etag and cache is empty = no articles to generate digests from
 
   await db
-    .updateTable("fetches")
+    .updateTable("sources")
     .set("previous_etag", response.headers.get("ETag"))
     .where("id", "=", source.id)
     .execute();
@@ -384,7 +382,7 @@ async function RouteArticlesToDigests(
   const outputSchema = DigestsIntermediarySchema;
   const schemaString = JSON.stringify(zodToJsonSchema(outputSchema));
 
-  // TODO: Strip down articles by omitting fields: fetch_id, used + id as article_id
+  // TODO: Strip down articles by omitting fields: source_id, used + id as article_id
 
   const input = AgentInputFactory(
     agentAdapter,
@@ -546,14 +544,13 @@ export const newsRouter = createTRPCRouter({
         .selectFrom("sources")
         .where("user_id", "=", ctx.session.user.id)
         .where("enabled", "=", 1)
-        .innerJoin("fetches", "fetches.source_id", "sources.id")
         .select([
+          "sources.id",
           "sources.slug",
           "sources.url",
           "sources.date_filter_param",
           "sources.date_format",
-          "fetches.id",
-          "fetches.previous_etag",
+          "sources.previous_etag",
         ])
         .execute()) as Source[];
 
@@ -617,7 +614,7 @@ export const newsRouter = createTRPCRouter({
         )
         .select([
           "id",
-          "fetch_id",
+          "source_id",
           "title",
           "link",
           "author",

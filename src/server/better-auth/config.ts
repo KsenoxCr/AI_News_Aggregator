@@ -140,11 +140,6 @@ export const auth = betterAuth({
           }));
 
           await db.insertInto("sources").values(sources).execute();
-
-          await db
-            .insertInto("fetches")
-            .values(sources.map((s) => ({ id: randomUUID(), source_id: s.id })))
-            .execute();
         },
       },
     },

@@ -6,7 +6,7 @@ import type {
   ClassificationSchema,
   DigestsIntermediarySchema,
 } from "~/lib/validators/news";
-import type { Agents, Fetches, Sources } from "./gen_types";
+import type { Agents, Sources } from "./gen_types";
 
 export type { DB } from "./gen_types";
 
@@ -24,9 +24,8 @@ export type Agent = Pick<Agents, "provider" | "model" | "api_key">;
 
 export type Source = Pick<
   Sources,
-  "slug" | "url" | "date_filter_param" | "date_format"
-> &
-  Pick<Fetches, "id" | "previous_etag">;
+  "id" | "slug" | "url" | "date_filter_param" | "date_format" | "previous_etag"
+>;
 
 export type Classified = z.infer<typeof ClassificationSchema>;
 
@@ -34,7 +33,10 @@ export type DigestsIntermediary = z.infer<typeof DigestsIntermediarySchema>;
 
 export type PrevDigestHeader = { id: string; title: string };
 
-export type PrevDigest = PrevDigestHeader & { digest: string; revision: number };
+export type PrevDigest = PrevDigestHeader & {
+  digest: string;
+  revision: number;
+};
 
 export type DigestRequest = {
   article: ArticleWithCategories;

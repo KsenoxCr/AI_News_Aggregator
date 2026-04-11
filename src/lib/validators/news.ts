@@ -14,7 +14,7 @@ export const BaseArticleSchema = z.object({
   link: z.string().url(),
   author: z.string(),
   published_at: z.coerce.date(),
-  fetch_id: z.string(),
+  source_id: z.string(),
   used: z.number(),
 });
 

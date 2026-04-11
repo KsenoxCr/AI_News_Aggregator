@@ -63,21 +63,15 @@ CREATE TABLE sources (
   date_filter_param VARCHAR(255) DEFAULT NULL,
   date_format       ENUM('ISO_8601', 'ISO_DATE', 'UNIX', 'RFC_1123', 'RFC_822') DEFAULT NULL,
   is_metered        BOOLEAN NOT NULL DEFAULT FALSE,
+  previous_etag     VARCHAR(255) DEFAULT NULL,
   user_id           VARCHAR(36) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   UNIQUE KEY (user_id, slug),
   UNIQUE KEY (user_id, url)
 ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
-CREATE TABLE fetches ( -- TODO: Redundant, remove and refactor
-  id                VARCHAR(36) NOT NULL PRIMARY KEY,
-  source_id         VARCHAR(36) UNIQUE NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
-  previous_etag     VARCHAR(255) DEFAULT NULL,
-  INDEX idx_source_fetches (source_id)
-) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
 CREATE TABLE cached_articles (
     id            VARCHAR(36)  PRIMARY KEY,
-    fetch_id     VARCHAR(36)  NOT NULL REFERENCES fetches(id) ON DELETE CASCADE,
+    source_id     VARCHAR(36)  NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
     title         VARCHAR(500) NOT NULL,
     link          VARCHAR(2048) NOT NULL,
     author        VARCHAR(255)  NOT NULL,

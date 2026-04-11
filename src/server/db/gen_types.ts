@@ -27,7 +27,7 @@ export interface ArticleCategories {
 
 export interface CachedArticles {
   author: string;
-  fetch_id: string;
+  source_id: string;
   id: string;
   link: string;
   published_at: Date;
@@ -52,12 +52,6 @@ export interface DigestSources {
   title: string | null;
   url: string;
   url_hash: string;
-}
-
-export interface Fetches {
-  id: string;
-  previous_etag: string | null;
-  source_id: string;
 }
 
 export interface MagicLinkTokens {
@@ -113,6 +107,7 @@ export interface Sources {
   enabled: Generated<number | null>;
   id: string;
   is_metered: Generated<number>;
+  previous_etag: string | null;
   slug: string;
   url: string;
   user_id: string;
@@ -146,7 +141,6 @@ export interface DB {
   digest_categories: DigestCategories;
   digest_revisions: DigestRevisions;
   digest_sources: DigestSources;
-  fetches: Fetches;
   magic_link_tokens: MagicLinkTokens;
   news_digests: NewsDigests;
   sessions: Sessions;
