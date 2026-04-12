@@ -18,38 +18,52 @@ export const settingsRouter = createTRPCRouter({
   // TODO: Feature: separate agents for classification & digest generation
   // TODO: coalesh all schema, validated lines to just validated by method chaining
   fetch: protectedProcedure.query(async ({ ctx }) => {
+    // TODO: fetch -> load
     const userId = ctx.session.user.id;
 
-    const [sources, agents, allCategories, userCategories, user] = await Promise.all([
-      db
-        .selectFrom("sources")
-        .selectAll()
-        .where("user_id", "=", userId)
-        .execute(),
-      db
-        .selectFrom("agents")
-        .select(["id", "provider", "model", "enabled"])
-        .where("user_id", "=", userId)
-        .execute(),
-      db.selectFrom("categories").select("slug").execute(),
-      db
-        .selectFrom("user_categories")
-        .select("category")
-        .where("user_id", "=", userId)
-        .execute(),
-      db
-        .selectFrom("users")
-        .select(["preferences", "locale"])
-        .where("id", "=", userId)
-        .executeTakeFirstOrThrow(),
-    ]);
+    const [sources, agents, allCategories, userCategories, user] =
+      await Promise.all([
+        db
+          .selectFrom("sources")
+          .selectAll()
+          .where("user_id", "=", userId)
+          .execute(),
+        db
+          .selectFrom("agents")
+          .select(["id", "provider", "api_key as key", "model", "enabled"])
+          .where("user_id", "=", userId)
+          .execute(),
+        db.selectFrom("categories").select("slug").execute(),
+        db
+          .selectFrom("user_categories")
+          .select("category")
+          .where("user_id", "=", userId)
+          .execute(),
+        db
+          .selectFrom("users")
+          .select(["preferences", "locale"])
+          .where("id", "=", userId)
+          .executeTakeFirstOrThrow(),
+      ]);
 
     const userCategorySet = new Set(userCategories.map((uc) => uc.category));
+
+    const agentsWithModels = await Promise.all(
+      agents.map(async (a) => {
+        const adapter = AgentAdapterFactory(a.provider as AgentProvider);
+        await adapter.configure(a.key, a.model);
+        const result = await adapter.listModels();
+        return {
+          ...a,
+          models: result.status === "success" ? result.models : [],
+        };
+      }),
+    );
 
     return {
       status: "success" as const,
       sources,
-      agents,
+      agents: agentsWithModels,
       preferences: {
         categories: allCategories.map((c) => ({
           category: c.slug,
