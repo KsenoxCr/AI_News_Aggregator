@@ -105,6 +105,7 @@ export interface AgentAdapter {
   get apiKey(): string;
   rateLimits: RateLimits | null;
   validateAPIKey(apiKey: string): Promise<ValidateAPIKeyResult>;
+  listModels(): Promise<ValidateAPIKeyResult>;
   configure(apiKey: string, model: string): Promise<ValidateAPIKeyResult>;
   sendRequest<T>(
     input: AgentInput,
@@ -182,7 +183,9 @@ export const OAIAdapter: AgentAdapter = {
     return this._apiKey;
   },
   rateLimits: null as RateLimits | null,
-  // TODO: response format coercion
+
+  // TODO: Return only T2T models
+  // TODO: response format coercion (if substansial coherence buff)
 
   async validateAPIKey(apiKey: string): Promise<ValidateAPIKeyResult> {
     try {
@@ -195,6 +198,9 @@ export const OAIAdapter: AgentAdapter = {
         error: { code: "UNAUTHORIZED", message: "errors.api.invalidApiKey" },
       };
     }
+  },
+  async listModels(): Promise<ValidateAPIKeyResult> {
+    return this.validateAPIKey(this._apiKey);
   },
   async configure(
     apiKey: string,
@@ -252,7 +258,6 @@ export const OAIAdapter: AgentAdapter = {
   },
 };
 
-
 export const AnthropicAdapter: AgentAdapter = {
   endpoint: AGENT.ENDPOINTS.Anthropic as AgentEndpoint,
   _model: "",
@@ -265,6 +270,8 @@ export const AnthropicAdapter: AgentAdapter = {
   },
   rateLimits: null as RateLimits | null,
 
+  // TODO: Return only T2T models
+
   async validateAPIKey(apiKey: string): Promise<ValidateAPIKeyResult> {
     try {
       const client = new Anthropic({ apiKey });
@@ -276,6 +283,9 @@ export const AnthropicAdapter: AgentAdapter = {
         error: { code: "UNAUTHORIZED", message: "errors.api.invalidApiKey" },
       };
     }
+  },
+  async listModels(): Promise<ValidateAPIKeyResult> {
+    return this.validateAPIKey(this._apiKey);
   },
   async configure(
     apiKey: string,
