@@ -5,10 +5,7 @@ import {
   protectedTranslatedProcedure,
 } from "~/server/api/trpc";
 import { db } from "~/server/db/db";
-import {
-  AddAPIKeySchemaFactory,
-  SaveSettingsSchema,
-} from "~/lib/validators/settings";
+import { SaveSettingsSchemaFactory } from "~/lib/validators/settings";
 import {
   AddSourceSchemaFactory,
   RemoveSourceSchemaFactory,
@@ -19,15 +16,19 @@ import { AgentAdapterFactory } from "~/lib/factories/agent";
 
 export const settingsRouter = createTRPCRouter({
   // TODO: Feature: separate agents for classification & digest generation
+  // TODO: coalesh all schema, validated lines to just validated by method chaining
   fetch: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.session.user.id;
 
-    // TODO: select agents
-
-    const [sources, allCategories, userCategories, user] = await Promise.all([
+    const [sources, agents, allCategories, userCategories, user] = await Promise.all([
       db
         .selectFrom("sources")
         .selectAll()
+        .where("user_id", "=", userId)
+        .execute(),
+      db
+        .selectFrom("agents")
+        .select(["id", "provider", "model", "enabled"])
         .where("user_id", "=", userId)
         .execute(),
       db.selectFrom("categories").select("slug").execute(),
@@ -48,7 +49,7 @@ export const settingsRouter = createTRPCRouter({
     return {
       status: "success" as const,
       sources,
-      agent: null,
+      agents,
       preferences: {
         categories: allCategories.map((c) => ({
           category: c.slug,
@@ -59,13 +60,14 @@ export const settingsRouter = createTRPCRouter({
       },
     };
   }),
-  save: protectedProcedure
-    .input(SaveSettingsSchema)
+  save: protectedTranslatedProcedure
+    .input(z.unknown())
     .mutation(async ({ input, ctx }) => {
+      const validated = SaveSettingsSchemaFactory(ctx.t).parse(input);
       const userId = ctx.session.user.id;
 
       await Promise.all(
-        input.sources.map((s) =>
+        validated.sources.map((s) =>
           db
             .updateTable("sources")
             .set("enabled", s.enabled ? 1 : 0)
@@ -75,46 +77,46 @@ export const settingsRouter = createTRPCRouter({
         ),
       );
 
-      if (input.agents.enable)
+      if (validated.agents.enable)
         await db
           .updateTable("agents")
           .set("enabled", 1)
-          .where("id", "=", input.agents.enable)
+          .where("id", "=", validated.agents.enable)
           .where("user_id", "=", userId)
           .execute();
 
-      if (input.agents.disable)
+      if (validated.agents.disable)
         await db
           .updateTable("agents")
           .set("enabled", 0)
-          .where("id", "=", input.agents.disable)
+          .where("id", "=", validated.agents.disable)
           .where("user_id", "=", userId)
           .execute();
 
-      if (input.preferences.categories.add.length > 0)
+      if (validated.preferences.categories.add.length > 0)
         await db
           .insertInto("user_categories")
           .ignore()
           .values(
-            input.preferences.categories.add.map((category) => ({
+            validated.preferences.categories.add.map((category) => ({
               user_id: userId,
               category,
             })),
           )
           .execute();
 
-      if (input.preferences.categories.remove.length > 0)
+      if (validated.preferences.categories.remove.length > 0)
         await db
           .deleteFrom("user_categories")
           .where("user_id", "=", userId)
-          .where("category", "in", input.preferences.categories.remove)
+          .where("category", "in", validated.preferences.categories.remove)
           .execute();
 
       await db
         .updateTable("users")
         .set({
-          preferences: input.preferences.preferences,
-          locale: input.preferences.locale,
+          preferences: validated.preferences.preferences,
+          locale: validated.preferences.locale,
         })
         .where("id", "=", userId)
         .execute();
@@ -137,7 +139,7 @@ export const settingsRouter = createTRPCRouter({
       const schema = AddSourceSchemaFactory(ctx.t);
       const validated = schema.parse(input);
 
-      // TODO: Fetch-based feed format detection
+      // TODO: Fetch-based feed format validation
       // TODO: translate err msgs
 
       const sourceId = crypto.randomUUID();
