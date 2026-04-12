@@ -11,23 +11,29 @@ export const AddAPIKeySchemaFactory = (t: TFn) =>
       .max(512, t("validation.agent.config.apiKeyTooLong", { max: 512 })),
   });
 
-export const SaveSettingsSchema = z.object({
-  sources: z.array(
-    z.object({
-      source_id: z.string().uuid(),
-      enabled: z.boolean(),
+export const SaveSettingsSchemaFactory = (t: TFn) =>
+  z.object({
+    sources: z.array(
+      z.object({
+        source_id: z.string().uuid(),
+        enabled: z.boolean(),
+      }),
+    ),
+    agents: z.object({
+      enable: z.string().uuid().nullable(),
+      disable: z.string().uuid().nullable(),
     }),
-  ),
-  agents: z.object({
-    enable: z.string().uuid().nullable(),
-    disable: z.string().uuid().nullable(),
-  }),
-  preferences: z.object({
-    categories: z.object({
-      add: z.array(z.string().max(100)),
-      remove: z.array(z.string().max(100)),
+    preferences: z.object({
+      categories: z.object({
+        add: z.array(z.string().max(100)),
+        remove: z.array(z.string().max(100)),
+      }),
+      preferences: z.string().max(
+        MAX.preferences_chars,
+        t("validation.user.preferencesTooLong", {
+          max: MAX.preferences_chars,
+        }),
+      ),
+      locale: z.enum(SUPPORTED_LOCALES as unknown as [string, ...string[]]),
     }),
-    preferences: z.string().max(MAX.preferences_chars),
-    locale: z.enum(SUPPORTED_LOCALES as unknown as [string, ...string[]]),
-  }),
-});
+  });
