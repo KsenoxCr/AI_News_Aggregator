@@ -65,7 +65,8 @@
       "apiKeyPlaceholder": "API Key",
       "add": "Add",
       "models": "Models",
-      "waitingForKey": "Waiting for API key..."
+      "waitingForKey": "Waiting for API key...",
+      "remove": "Remove"
     },
     "preferences": {
       "title": "Preferences",
@@ -77,6 +78,9 @@
   "success": {
     "source": {
       "added": "Source added successfully"
+    },
+    "settings": {
+      "saved": "Settings saved successfully"
     }
   },
   "errors": {

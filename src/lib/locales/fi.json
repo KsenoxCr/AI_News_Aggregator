@@ -30,7 +30,6 @@
     "user": {
       "emailEmpty": "Sähköpostiosoite vaaditaan",
       "emailInvalid": "Kirjoita kelvollinen sähköpostiosoite",
-      "preferencesEmpty": "Mieltymykset eivät voi olla tyhjät",
       "preferencesTooLong": "Mieltymykset saavat olla enintään {max} merkkiä pitkät"
     },
     "category": {
@@ -65,7 +64,8 @@
       "apiKeyPlaceholder": "API-avain",
       "add": "Lisää",
       "models": "Mallit",
-      "waitingForKey": "Odotetaan API-avainta..."
+      "waitingForKey": "Odotetaan API-avainta...",
+      "remove": "Poista"
     },
     "preferences": {
       "title": "Mieltymykset",
@@ -77,6 +77,9 @@
   "success": {
     "source": {
       "added": "Lähde lisätty onnistuneesti"
+    },
+    "settings": {
+      "saved": "Asetukset tallennettu onnistuneesti"
     }
   },
   "errors": {
