@@ -22,9 +22,12 @@ import {
   MAX,
   type AgentProvider,
 } from "~/config/business";
-import { SUPPORTED_LOCALES, type Locale } from "~/lib/i18n/routing";
+import { routing, SUPPORTED_LOCALES, type Locale } from "~/lib/i18n/routing";
 import { AddSourceSchemaFactory } from "~/lib/validators/source";
-import { AddAPIKeySchemaFactory } from "~/lib/validators/settings";
+import {
+  AddAPIKeySchemaFactory,
+  SaveSettingsSchemaFactory,
+} from "~/lib/validators/settings";
 import { FlagButton } from "./_components/flag";
 import { ProviderButton } from "./_components/provider";
 import { api } from "~/trpc/react";
@@ -55,33 +58,69 @@ function CategoryChip({
   );
 }
 
-// TODO: Segregate PopOver per provider
-// TODO: handleSave
+// TODO: Extract sections into discrete child components
 
 export default function SettingsPage() {
   const t = useTranslations();
   const utils = api.useUtils();
-  const { data } = api.settings.fetch.useQuery();
+  const { data: dbSettings } = api.settings.fetch.useQuery();
 
-  const [selectedLocale, setSelectedLocale] = useState<Locale | null>(null);
-  const [enabledSources, setEnabledSources] = useState<Set<string>>(new Set());
-  const [activeCategories, setActiveCategories] = useState<string[]>([]);
+  const [selectedLocale, setSelectedLocale] = useState<Locale>(
+    routing.defaultLocale,
+  );
+  const [settingsSources, setSettingsSources] = useState<Set<string>>(
+    new Set(),
+  );
+  const [settingsCategories, setSettingsCategories] = useState<
+    Map<string, boolean>
+  >(new Map());
+
   const [newSlug, setNewSlug] = useState("");
   const [newUrl, setNewUrl] = useState("");
-  const [apiKey, setApiKey] = useState("");
-  const [models, setModels] = useState<string[]>([]);
-  const [activeModel, setActiveModel] = useState<{
-    provider: AgentProvider;
-    model: string;
-  } | null>(null);
+  const [agents, setAgents] = useState<
+    {
+      id: string | null;
+      provider: AgentProvider;
+      model: string;
+      enabled: boolean;
+      key: string;
+      models: string[];
+    }[]
+  >([]);
+  const [apiKeyInputs, setApiKeyInputs] = useState<Map<AgentProvider, string>>(
+    new Map(),
+  );
+  const [prevEnabledAgent, setPrevEnabledAgent] =
+    useState<AgentProvider | null>(null);
+  const [freeform, setFreeform] = useState("");
 
   useEffect(() => {
-    if (!data) return;
-    setEnabledSources(
-      new Set(data.sources.filter((s) => s.enabled).map((s) => s.id)),
+    if (!dbSettings) return;
+    setSettingsSources(
+      new Set(dbSettings.sources.filter((s) => s.enabled).map((s) => s.id)),
     );
-    setSelectedLocale(data.preferences.locale as Locale);
-  }, [data]);
+    setSelectedLocale(dbSettings.preferences.locale as Locale);
+    setSettingsCategories(
+      new Map(
+        dbSettings.preferences.categories.map((c) => [c.category, c.enabled]),
+      ),
+    );
+    setFreeform(dbSettings.preferences.freeform);
+    setAgents(
+      dbSettings.agents.map((a) => ({
+        id: a.id,
+        provider: a.provider as AgentProvider,
+        model: a.model,
+        enabled: !!a.enabled,
+        key: a.key ? a.key.slice(0, 5) : "",
+        models: a.models,
+      })),
+    );
+    const enabledAgent = dbSettings.agents.find((a) => a.enabled);
+    setPrevEnabledAgent(
+      enabledAgent ? (enabledAgent.provider as AgentProvider) : null,
+    );
+  }, [dbSettings]);
 
   const addSourceMutation = api.settings.addSource.useMutation({
     onSuccess: (result) => {
@@ -89,7 +128,7 @@ export default function SettingsPage() {
         toast.error(result.error, TOAST_POS);
         return;
       }
-      setEnabledSources((prev) => new Set(prev).add(result.source!.id));
+      setSettingsSources((prev) => new Set(prev).add(result.source!.id));
       void utils.settings.fetch.invalidate();
       setNewSlug("");
       setNewUrl("");
@@ -99,24 +138,48 @@ export default function SettingsPage() {
   });
 
   const validateAPIKeyMutation = api.settings.validateAPIKey.useMutation({
-    onSuccess: (result) => {
-      if (result.status === "failure") {
-        toast.error(result.error, TOAST_POS);
-        return;
-      }
-      setModels(result.models);
+    onError: (err) => toast.error(err.message, TOAST_POS),
+  });
+
+  const saveMutation = api.settings.save.useMutation({
+    onSuccess: async () => {
+      await utils.settings.fetch.invalidate();
+      toast.success(t("success.settings.saved"), TOAST_POS);
     },
     onError: (err) => toast.error(err.message, TOAST_POS),
   });
 
-  const handleAddAPIKey = (provider: AgentProvider) => {
+  const handleAPI = async (provider: AgentProvider): Promise<boolean> => {
     const schema = AddAPIKeySchemaFactory(t);
-    const parsed = schema.safeParse({ key: apiKey });
+    const parsed = schema.safeParse({ key: apiKeyInputs.get(provider) ?? "" });
     if (!parsed.success) {
       toast.error(parsed.error.errors[0]?.message, TOAST_POS);
-      return;
+      return false;
     }
-    validateAPIKeyMutation.mutate({ provider, key: parsed.data.key });
+    try {
+      const result = await validateAPIKeyMutation.mutateAsync({
+        provider,
+        key: parsed.data.key,
+      });
+      if (result.status === "failure") {
+        toast.error(result.error, TOAST_POS);
+        return false;
+      }
+      setAgents((prev) => [
+        ...prev,
+        {
+          id: null,
+          provider,
+          model: "",
+          enabled: false,
+          key: parsed.data.key.slice(0, 5),
+          models: result.models,
+        },
+      ]);
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const handleAddSource = () => {
@@ -128,12 +191,12 @@ export default function SettingsPage() {
       return;
     }
 
-    if (data?.sources.some((s) => s.slug === parsed.data.slug)) {
+    if (dbSettings?.sources.some((s) => s.slug === parsed.data.slug)) {
       toast.error(t("validation.source.duplicateSlug"), TOAST_POS);
       return;
     }
 
-    if (data?.sources.some((s) => s.url === parsed.data.url)) {
+    if (dbSettings?.sources.some((s) => s.url === parsed.data.url)) {
       toast.error(t("validation.source.duplicateUrl"), TOAST_POS);
       return;
     }
@@ -142,20 +205,73 @@ export default function SettingsPage() {
   };
 
   const toggleSource = (id: string) =>
-    setEnabledSources((prev) => {
+    setSettingsSources((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
 
   const toggleCategory = (cat: string) =>
-    setActiveCategories((prev) =>
-      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat],
-    );
+    setSettingsCategories((prev) => new Map(prev).set(cat, !prev.get(cat)));
 
-  const primaryCategories = data?.preferences.categories.slice(0, 4) ?? [];
-  const moreCategories = data?.preferences.categories.slice(4) ?? [];
-  const sourceCount = data?.sources.length ?? 0;
+  const handleSave = () => {
+    const categoriesDelta = {
+      add: categories
+        .filter((c) => settingsCategories.get(c.category) && !c.enabled)
+        .map((c) => c.category),
+      remove: categories
+        .filter((c) => !settingsCategories.get(c.category) && c.enabled)
+        .map((c) => c.category),
+    };
+    const sourcesDelta = (dbSettings?.sources ?? [])
+      .filter((s) => settingsSources.has(s.id) !== !!s.enabled)
+      .map((s) => ({ source_id: s.id, enabled: settingsSources.has(s.id) }));
+    const agentsDelta = {
+      add: agents
+        .filter((a) => !a.id)
+        .map((a) => ({ provider: a.provider, model: a.model, key: a.key })),
+      remove: (dbSettings?.agents ?? [])
+        .filter((da) => !agents.some((a) => a.id === da.id))
+        .map((da) => da.id),
+      enable: agents
+        .filter(
+          (a) =>
+            a.id &&
+            a.enabled &&
+            !dbSettings?.agents.find((da) => da.id === a.id)?.enabled,
+        )
+        .map((a) => a.id!),
+      disable: agents
+        .filter(
+          (a) =>
+            a.id &&
+            !a.enabled &&
+            dbSettings?.agents.find((da) => da.id === a.id)?.enabled,
+        )
+        .map((a) => a.id!),
+    };
+    const schema = SaveSettingsSchemaFactory(t);
+    const parsed = schema.safeParse({
+      sources: sourcesDelta,
+      agents: agentsDelta,
+      preferences: {
+        categories: categoriesDelta,
+        preferences: freeform,
+        locale: selectedLocale,
+      },
+    });
+
+    if (!parsed.success) {
+      toast.error(parsed.error.errors[0]?.message, TOAST_POS);
+      return;
+    }
+    saveMutation.mutate(parsed.data);
+  };
+
+  const categories = dbSettings?.preferences.categories ?? [];
+  const primaryCategories = categories.slice(0, 4);
+  const moreCategories = categories.slice(4);
+  const sourceCount = dbSettings?.sources.length ?? 0;
   const atSourceLimit = sourceCount >= MAX.sources;
 
   return (
@@ -212,6 +328,7 @@ export default function SettingsPage() {
             ))}
           </div>
         </section>
+        {/* TODO: remove button*/}
 
         {/* News Sources */}
         <section className="border-border bg-card rounded-xl border p-5">
@@ -219,7 +336,7 @@ export default function SettingsPage() {
             <Typography as="h2" variant="heading-2">
               {t("settings.sources.title")}
             </Typography>
-            {data?.sources && (
+            {dbSettings?.sources && (
               <Typography variant="body-sm" className="text-muted-foreground">
                 ({sourceCount}/{MAX.sources})
               </Typography>
@@ -229,15 +346,15 @@ export default function SettingsPage() {
           {/* Source list */}
           <div className="flex flex-col gap-3">
             {/* TODO: hover: show source.url */}
-            {data?.sources ? (
-              data.sources.map((source) => (
+            {dbSettings?.sources ? (
+              dbSettings.sources.map((source) => (
                 <div
                   key={source.id}
                   className="flex items-center justify-between"
                 >
                   <Typography variant="body-sm">{source.slug}</Typography>
                   <Switch
-                    checked={enabledSources.has(source.id)}
+                    checked={settingsSources.has(source.id)}
                     onCheckedChange={() => toggleSource(source.id)}
                   />
                 </div>
@@ -289,79 +406,123 @@ export default function SettingsPage() {
             {t("settings.aiModel.title")}
           </Typography>
           <div className="-ml-1 flex gap-1">
-            {AGENT_PROVIDERS.map((provider) => (
-              <Popover key={provider}>
-                <PopoverTrigger asChild>
-                  <ProviderButton
-                    provider={provider}
-                    enabled={activeModel?.provider === provider}
-                    handleClick={() => {}}
-                  />
-                </PopoverTrigger>
-                <PopoverContent align="start" className="w-64">
-                  <Typography
-                    variant="body-sm"
-                    weight="semibold"
-                    className="mb-3 block"
-                  >
-                    {provider}
-                  </Typography>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder={t("settings.aiModel.apiKeyPlaceholder")}
-                      className="flex-1 text-xs"
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
+            {AGENT_PROVIDERS.map((provider) => {
+              const agent = agents.find((a) => a.provider === provider);
+              return (
+                <Popover key={provider}>
+                  <PopoverTrigger asChild>
+                    <ProviderButton
+                      provider={provider}
+                      enabled={
+                        agent?.provider === provider &&
+                        (agent?.enabled ?? false)
+                      }
+                      handleClick={() => {}}
                     />
-                    <Button
-                      size="sm"
-                      className="shrink-0"
-                      onClick={() => handleAddAPIKey(provider)}
-                      disabled={validateAPIKeyMutation.isPending}
-                    >
-                      {t("settings.aiModel.add")}
-                    </Button>
-                  </div>
-                  <div className="mt-4">
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="max-h-110 w-64">
                     <Typography
                       variant="body-sm"
                       weight="semibold"
-                      className="mb-2 block"
+                      className="mb-3 block"
+                    >
+                      {provider}
+                    </Typography>
+                    <form
+                      className="flex gap-2"
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (agent) {
+                          setAgents((prev) =>
+                            prev.filter((a) => a.provider !== provider),
+                          );
+                        } else {
+                          await handleAPI(provider);
+                        }
+                      }}
+                    >
+                      <Input
+                        placeholder={t("settings.aiModel.apiKeyPlaceholder")}
+                        className="flex-1 text-xs"
+                        disabled={!!agent}
+                        value={
+                          agent
+                            ? agent.key + "*".repeat(32)
+                            : (apiKeyInputs.get(provider) ?? "")
+                        }
+                        onChange={(e) =>
+                          setApiKeyInputs((prev) =>
+                            new Map(prev).set(provider, e.target.value),
+                          )
+                        }
+                      />
+                      <Button
+                        type="submit"
+                        size="sm"
+                        className="shrink-0"
+                        disabled={validateAPIKeyMutation.isPending}
+                      >
+                        {/* TODO: Swap with spinner during handleAPI resolution*/}
+                        {/* TODO: Confirmation w/warning for removal*/}
+                        {agent
+                          ? t("settings.aiModel.remove")
+                          : t("settings.aiModel.add")}
+                      </Button>
+                    </form>
+                    <Typography
+                      variant="body-sm"
+                      weight="semibold"
+                      className="mt-2 block"
                     >
                       {t("settings.aiModel.models")}
                     </Typography>
-                    {models.length === 0 ? (
-                      <Typography
-                        variant="body-sm"
-                        className="text-muted-foreground"
-                      >
-                        {t("settings.aiModel.waitingForKey")}
-                      </Typography>
-                    ) : (
-                      <div className="flex flex-col gap-1">
-                        {models.map((model) => (
-                          <Typography
-                            key={model}
-                            as="button"
-                            variant="body-sm"
-                            onClick={() => setActiveModel({ provider, model })}
-                            className={cn(
-                              "rounded px-2 py-1 text-left transition-colors",
-                              activeModel?.provider === provider &&
-                                activeModel.model === model
-                                ? "bg-primary text-primary-foreground"
-                                : "text-muted-foreground hover:bg-muted",
-                            )}
-                          >
-                            {model}
-                          </Typography>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </PopoverContent>
-              </Popover>
-            ))}
+                    <div className="overflow-y-auto">
+                      {!agent?.models.length ? (
+                        <Typography
+                          variant="body-sm"
+                          className="text-muted-foreground"
+                        >
+                          {t("settings.aiModel.waitingForKey")}
+                        </Typography>
+                      ) : (
+                        <div className="flex flex-col gap-1">
+                          {[
+                            agent.model,
+                            ...agent.models.filter((m) => m !== agent.model),
+                          ].map((model) => (
+                            <Typography
+                              key={model}
+                              as="button"
+                              variant="body-sm"
+                              onClick={() => {
+                                setAgents((prev) =>
+                                  prev.map((a) => {
+                                    if (a.provider === provider)
+                                      return { ...a, model, enabled: true };
+                                    if (a.provider === prevEnabledAgent)
+                                      return { ...a, enabled: false };
+                                    return a;
+                                  }),
+                                );
+                                setPrevEnabledAgent(provider);
+                              }}
+                              className={cn(
+                                "rounded px-2 py-1 text-left transition-colors",
+                                agent?.model === model
+                                  ? "bg-primary text-primary-foreground"
+                                  : "text-muted-foreground hover:bg-muted",
+                              )}
+                            >
+                              {model}
+                            </Typography>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              );
+            })}
           </div>
         </section>
 
@@ -371,53 +532,67 @@ export default function SettingsPage() {
             {t("settings.preferences.title")}
           </Typography>
 
-          {data?.preferences ? (
+          {dbSettings?.preferences ? (
             <>
               {/* Categories */}
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                {primaryCategories.map((c) => (
-                  <CategoryChip
-                    key={c.category}
-                    label={c.category}
-                    active={activeCategories.includes(c.category)}
-                    onClick={() => toggleCategory(c.category)}
-                  />
-                ))}
-
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="bg-primary text-primary-foreground hover:bg-primary/80 flex size-6 items-center justify-center rounded-full transition-colors">
-                      <Plus className="size-3.5" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent align="end" className="w-56">
-                    <Typography
-                      variant="body-sm"
-                      weight="semibold"
-                      className="mb-3 block"
-                    >
-                      {t("settings.preferences.moreCategories")}
-                    </Typography>
-                    <div className="flex flex-wrap gap-2">
-                      {moreCategories.map((c) => (
-                        <CategoryChip
-                          key={c.category}
-                          label={c.category}
-                          active={activeCategories.includes(c.category)}
-                          onClick={() => toggleCategory(c.category)}
-                        />
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex flex-wrap items-center gap-2">
+                  {primaryCategories.map((c) => (
+                    <CategoryChip
+                      key={c.category}
+                      label={c.category}
+                      active={settingsCategories.get(c.category) ?? false}
+                      onClick={() => toggleCategory(c.category)}
+                    />
+                  ))}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button className="bg-primary text-primary-foreground hover:bg-primary/80 flex size-6 items-center justify-center rounded-full transition-colors">
+                        <Plus className="size-3.5" />
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent align="end" className="w-56">
+                      <Typography
+                        variant="body-sm"
+                        weight="semibold"
+                        className="mb-3 block"
+                      >
+                        {t("settings.preferences.moreCategories")}
+                      </Typography>
+                      <div className="flex flex-wrap gap-2">
+                        {moreCategories.map((c) => (
+                          <CategoryChip
+                            key={c.category}
+                            label={c.category}
+                            active={settingsCategories.get(c.category) ?? false}
+                            onClick={() => toggleCategory(c.category)}
+                          />
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <Typography variant="body-sm" className="text-muted-foreground">
+                  ({[...settingsCategories.values()].filter(Boolean).length}/
+                  {categories.length})
+                </Typography>
               </div>
 
               {/* Freeform preferences */}
-              <textarea
-                defaultValue={data.preferences.freeform}
-                placeholder={t("settings.preferences.freeformPlaceholder")}
-                className="border-input bg-input/30 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 h-24 w-full resize-none rounded-xl border px-3 py-2 text-sm transition-colors outline-none focus-visible:ring-[3px]"
-              />
+              <div className="relative">
+                <textarea
+                  value={freeform}
+                  onChange={(e) => setFreeform(e.target.value)}
+                  placeholder={t("settings.preferences.freeformPlaceholder")}
+                  className="border-input bg-input/30 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 h-24 w-full resize-none rounded-xl border px-3 py-2 text-sm transition-colors outline-none focus-visible:ring-[3px]"
+                />
+                <Typography
+                  variant="body-sm"
+                  className="text-muted-foreground absolute right-2.5 bottom-4 text-xs"
+                >
+                  {freeform.length}/{MAX.preferences_chars}
+                </Typography>
+              </div>
             </>
           ) : (
             <div className="flex justify-center py-4">
@@ -427,7 +602,10 @@ export default function SettingsPage() {
         </section>
 
         {/* Save */}
-        <Button className="h-12 w-full rounded-xl text-base">
+        <Button
+          className="h-12 w-full rounded-xl text-base"
+          onClick={handleSave}
+        >
           {t("settings.save")}
         </Button>
       </main>
