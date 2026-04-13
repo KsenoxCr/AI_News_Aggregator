@@ -91,21 +91,42 @@ export const settingsRouter = createTRPCRouter({
         ),
       );
 
-      if (validated.agents.enable)
+      if (validated.agents.add.length > 0)
         await db
-          .updateTable("agents")
-          .set("enabled", 1)
-          .where("id", "=", validated.agents.enable)
+          .insertInto("agents")
+          .values(
+            validated.agents.add.map((a) => ({
+              id: crypto.randomUUID(),
+              user_id: userId,
+              provider: a.provider,
+              model: a.model,
+              api_key: a.key,
+              slug: a.provider,
+              enabled: 1,
+            })),
+          )
+          .execute();
+
+      if (validated.agents.remove.length > 0)
+        await db
+          .deleteFrom("agents")
+          .where("id", "in", validated.agents.remove)
           .where("user_id", "=", userId)
           .execute();
 
-      if (validated.agents.disable)
-        await db
-          .updateTable("agents")
-          .set("enabled", 0)
-          .where("id", "=", validated.agents.disable)
-          .where("user_id", "=", userId)
-          .execute();
+      if (validated.agents.enable.length > 0)
+        await Promise.all(
+          validated.agents.enable.map((id) =>
+            db.updateTable("agents").set("enabled", 1).where("id", "=", id).where("user_id", "=", userId).execute(),
+          ),
+        );
+
+      if (validated.agents.disable.length > 0)
+        await Promise.all(
+          validated.agents.disable.map((id) =>
+            db.updateTable("agents").set("enabled", 0).where("id", "=", id).where("user_id", "=", userId).execute(),
+          ),
+        );
 
       if (validated.preferences.categories.add.length > 0)
         await db

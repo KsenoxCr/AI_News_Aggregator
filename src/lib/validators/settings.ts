@@ -20,8 +20,10 @@ export const SaveSettingsSchemaFactory = (t: TFn) =>
       }),
     ),
     agents: z.object({
-      enable: z.string().uuid().nullable(),
-      disable: z.string().uuid().nullable(),
+      add: z.array(z.object({ provider: z.string(), model: z.string(), key: z.string() })),
+      remove: z.array(z.string().uuid()),
+      enable: z.array(z.string().uuid()),
+      disable: z.array(z.string().uuid()),
     }),
     preferences: z.object({
       categories: z.object({
