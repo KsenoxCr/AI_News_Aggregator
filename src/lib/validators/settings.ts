@@ -21,7 +21,12 @@ export const SaveSettingsSchemaFactory = (t: TFn) =>
     ),
     agents: z.object({
       add: z.array(
-        z.object({ id: z.string().uuid().nullable(), provider: z.string(), model: z.string(), key: z.string() }),
+        z.object({
+          id: z.string().uuid().nullable(),
+          provider: z.string(),
+          model: z.string(),
+          key: z.string(),
+        }),
       ),
       remove: z.array(z.string().uuid()),
       enable: z.array(z.string().uuid()),
