@@ -12,6 +12,8 @@ import superjson from "superjson";
 import { ZodError } from "zod";
 
 import { auth } from "~/server/better-auth";
+import { env } from "~/env";
+import { hashKDF } from "~/lib/utils/crypto";
 
 /**
  * 1. CONTEXT
@@ -26,19 +28,23 @@ import { auth } from "~/server/better-auth";
  * @see https://trpc.io/docs/server/context
  */
 
+const mk = hashKDF(env.CRYPTO_SECRET);
 
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-    const session = await auth.api.getSession({ headers: opts.headers })
-    return createInnerTRPCContext({ session, headers: opts.headers })
-}
+  const session = await auth.api.getSession({ headers: opts.headers });
+  return createInnerTRPCContext({ session, headers: opts.headers });
+};
 
-
-export const createInnerTRPCContext = (opts: { session: Awaited<ReturnType<typeof auth.api.getSession>>; headers?: Headers }) => {
-    return {
-        session: opts.session,
-        headers: opts.headers,
-    }
-}
+export const createInnerTRPCContext = (opts: {
+  session: Awaited<ReturnType<typeof auth.api.getSession>>;
+  headers?: Headers;
+}) => {
+  return {
+    session: opts.session,
+    headers: opts.headers,
+    mk,
+  };
+};
 
 /**
  * 2. INITIALIZATION
@@ -48,17 +54,17 @@ export const createInnerTRPCContext = (opts: { session: Awaited<ReturnType<typeo
  * errors on the backend.
  */
 const t = initTRPC.context<typeof createTRPCContext>().create({
-    transformer: superjson,
-    errorFormatter({ shape, error }) {
-        return {
-            ...shape,
-            data: {
-                ...shape.data,
-                zodError:
-                    error.cause instanceof ZodError ? error.cause.flatten() : null,
-            },
-        };
-    },
+  transformer: superjson,
+  errorFormatter({ shape, error }) {
+    return {
+      ...shape,
+      data: {
+        ...shape.data,
+        zodError:
+          error.cause instanceof ZodError ? error.cause.flatten() : null,
+      },
+    };
+  },
 });
 
 /**
@@ -89,56 +95,52 @@ export const createTRPCRouter = t.router;
  * network latency that would occur in production but not in local development.
  */
 const timingMiddleware = t.middleware(async ({ next, path }) => {
-    const start = Date.now();
+  const start = Date.now();
 
-    if (t._config.isDev) {
-        // artificial delay in dev
-        const waitMs = Math.floor(Math.random() * 400) + 100;
-        await new Promise((resolve) => setTimeout(resolve, waitMs));
-    }
+  if (t._config.isDev) {
+    // artificial delay in dev
+    const waitMs = Math.floor(Math.random() * 400) + 100;
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+  }
 
-    const result = await next();
+  const result = await next();
 
-    const end = Date.now();
-    console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
+  const end = Date.now();
+  console.log(`[TRPC] ${path} took ${end - start}ms to execute`);
 
-    return result;
+  return result;
 });
 
-
 const translationMiddleware = t.middleware(async ({ next, ctx }) => {
-    const t = await getTranslations({ locale: ctx.session!.user.locale })
-    return next({ ctx: { ...ctx, t } })
-})
-
+  const t = await getTranslations({ locale: ctx.session!.user.locale });
+  return next({ ctx: { ...ctx, t } });
+});
 
 const authMiddleware = t.middleware(({ next, ctx }) => {
-    if (!ctx.session?.user) {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
+  if (!ctx.session?.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
 
-    return next({
-        ctx: {
-            // infers the `session` as non-nullable
-            session: { ...ctx.session, user: ctx.session.user },
-        },
-    });
-})
-
+  return next({
+    ctx: {
+      // infers the `session` as non-nullable
+      session: { ...ctx.session, user: ctx.session.user },
+    },
+  });
+});
 
 const adminAuthMiddleware = t.middleware(({ next, ctx }) => {
-    if (!ctx.session?.user && ctx.session?.user.role !== "admin") {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
+  if (!ctx.session?.user && ctx.session?.user.role !== "admin") {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
 
-    return next({
-        ctx: {
-            // infers the `session` as non-nullable
-            session: { ...ctx.session, user: ctx.session.user },
-        },
-    });
-})
-
+  return next({
+    ctx: {
+      // infers the `session` as non-nullable
+      session: { ...ctx.session, user: ctx.session.user },
+    },
+  });
+});
 
 /**
  * Public (unauthenticated) procedure
@@ -158,15 +160,15 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
  * @see https://trpc.io/docs/procedures
  */
 export const protectedProcedure = t.procedure
-    .use(timingMiddleware)
-    .use(authMiddleware);
+  .use(timingMiddleware)
+  .use(authMiddleware);
 
 export const protectedTranslatedProcedure = t.procedure
-    .use(timingMiddleware)
-    .use(translationMiddleware)
-    .use(authMiddleware);
+  .use(timingMiddleware)
+  .use(translationMiddleware)
+  .use(authMiddleware);
 
 export const adminProcedure = t.procedure
-    .use(timingMiddleware)
-    .use(translationMiddleware)
-    .use(adminAuthMiddleware);
+  .use(timingMiddleware)
+  .use(translationMiddleware)
+  .use(adminAuthMiddleware);
