@@ -12,11 +12,12 @@ import {
 } from "~/lib/validators/source";
 import { IsDuplicateEntry } from "~/server/lib/util";
 import type { AgentProvider } from "~/config/business";
+import { FEED_FORMAT } from "~/config/business";
 import { AgentAdapterFactory } from "~/lib/factories/agent";
 import { encrypt, decrypt } from "~/lib/utils/crypto";
+import { fetchFeedXml, validateFeed } from "~/lib/utils/feed";
 
 export const settingsRouter = createTRPCRouter({
-  // TODO: Feature: separate agents for classification & digest generation
   // TODO: coalesh all schema, validated lines to just validated by method chaining
   load: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.session.user.id;
@@ -189,7 +190,23 @@ export const settingsRouter = createTRPCRouter({
       const schema = AddSourceSchemaFactory(ctx.t);
       const validated = schema.parse(input);
 
-      // TODO: Fetch-based feed format validation
+      let fetched;
+      try {
+        fetched = await fetchFeedXml(validated.url);
+      } catch (err: any) {
+        return { status: "failure", error: err.message };
+      }
+
+      const formats = Object.values(FEED_FORMAT);
+      const formatErrors: string[] = [];
+
+      for (const format of formats) {
+        const result = validateFeed(fetched.xml, format);
+        if (result.status === "failure") formatErrors.push(result.error);
+      }
+
+      if (formatErrors.length === formats.length)
+        return { status: "failure", error: ctx.t(formatErrors[0]!) };
 
       const sourceId = crypto.randomUUID();
 

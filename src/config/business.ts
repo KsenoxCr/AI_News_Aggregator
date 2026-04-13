@@ -68,6 +68,7 @@ export const DEFAULT = {
 
 export const AGENT_PROVIDERS = Object.values(AGENT.PROVIDERS);
 
+export type FeedFormat = (typeof FEED_FORMAT)[keyof typeof FEED_FORMAT];
 export type AgentProvider = (typeof AGENT_PROVIDERS)[number];
 export type AgentEndpoint =
   (typeof AGENT.ENDPOINTS)[keyof typeof AGENT.ENDPOINTS];

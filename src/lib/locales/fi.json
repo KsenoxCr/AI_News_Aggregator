@@ -93,6 +93,9 @@
     "source": {
       "notFound": "Lähdettä ei löydy"
     },
+    "feed": {
+      "invalidFormat": "Virheellinen syötemuoto"
+    },
     "api": {
       "invalidApiKey": "Virheellinen API-avain",
       "insufficientPermissions": "API-avaimella ei ole vaadittavia oikeuksia",

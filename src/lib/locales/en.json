@@ -94,6 +94,9 @@
     "source": {
       "notFound": "Source not found"
     },
+    "feed": {
+      "invalidFormat": "Invalid feed format"
+    },
     "api": {
       "invalidApiKey": "Invalid API key",
       "insufficientPermissions": "API key does not have required permissions",
