@@ -1,8 +1,9 @@
 import type { RouterOutputs } from "~/trpc/react";
 
-type DbCategory = RouterOutputs["settings"]["fetch"]["preferences"]["categories"][number];
-type DbSource = RouterOutputs["settings"]["fetch"]["sources"][number];
-type DbAgent = RouterOutputs["settings"]["fetch"]["agents"][number];
+type DbCategory =
+  RouterOutputs["settings"]["load"]["preferences"]["categories"][number];
+type DbSource = RouterOutputs["settings"]["load"]["sources"][number];
+type DbAgent = RouterOutputs["settings"]["load"]["agents"][number];
 
 type AgentState = {
   id: string | null;
@@ -35,10 +36,7 @@ export function sourcesDelta(
     .map((s) => ({ source_id: s.id, enabled: settingsSources.has(s.id) }));
 }
 
-export function agentsDelta(
-  agents: AgentState[],
-  dbAgents: DbAgent[],
-) {
+export function agentsDelta(agents: AgentState[], dbAgents: DbAgent[]) {
   return {
     add: agents
       .filter((a) => !a.id)
@@ -49,17 +47,13 @@ export function agentsDelta(
     enable: agents
       .filter(
         (a) =>
-          a.id &&
-          a.enabled &&
-          !dbAgents.find((da) => da.id === a.id)?.enabled,
+          a.id && a.enabled && !dbAgents.find((da) => da.id === a.id)?.enabled,
       )
       .map((a) => a.id!),
     disable: agents
       .filter(
         (a) =>
-          a.id &&
-          !a.enabled &&
-          dbAgents.find((da) => da.id === a.id)?.enabled,
+          a.id && !a.enabled && dbAgents.find((da) => da.id === a.id)?.enabled,
       )
       .map((a) => a.id!),
   };

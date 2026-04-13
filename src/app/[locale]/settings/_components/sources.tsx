@@ -15,7 +15,7 @@ import { api, type RouterOutputs } from "~/trpc/react";
 const TOAST_POS = { position: "top-center" } as const;
 
 interface Props {
-  dbSettings: RouterOutputs["settings"]["fetch"] | undefined;
+  dbSettings: RouterOutputs["settings"]["load"] | undefined;
   settingsSources: Set<string>;
   setSettingsSources: React.Dispatch<React.SetStateAction<Set<string>>>;
 }

@@ -38,7 +38,7 @@ function CategoryChip({
 }
 
 interface Props {
-  dbSettings: RouterOutputs["settings"]["fetch"] | undefined;
+  dbSettings: RouterOutputs["settings"]["load"] | undefined;
   settingsCategories: Map<string, boolean>;
   setSettingsCategories: React.Dispatch<
     React.SetStateAction<Map<string, boolean>>
