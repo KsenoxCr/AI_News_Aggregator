@@ -32,7 +32,7 @@ export function IsDuplicateEntry(err: unknown, key?: string): boolean {
 export function isOAIAdapter(
   adapter: AgentAdapter,
 ): adapter is typeof OAIAdapter {
-  return adapter.endpoint === AGENT.SUPPORTED_ENDPOINTS.OpenAI;
+  return adapter.endpoint === AGENT.ENDPOINTS.OpenAI;
 }
 
 export function ExtractEndpoint(url: string) {
