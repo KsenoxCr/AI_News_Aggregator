@@ -19,6 +19,7 @@ import { db } from "~/server/db/db";
 import type { AgentAdapter, SendRequestResult } from "~/lib/adapters/agent";
 import { AgentAdapterFactory, AgentInputFactory } from "~/lib/factories/agent";
 import { decrypt } from "~/lib/utils/crypto";
+import { fetchFeedXml } from "~/lib/utils/feed";
 import z from "zod";
 import type { AgentProvider } from "~/config/business";
 import {
@@ -39,7 +40,11 @@ import type {
   Translator,
 } from "~/server/db/types";
 
+// TODO: Total refactor
+
 // TODO: Extract fns into semantically appropriate, discrete files
+
+// TODO: fetcher used for new source validation
 
 // TODO: Frontend needs to swap old digests with their updated revisions if they were updated
 
@@ -119,35 +124,21 @@ async function FetchFeed(source: Source, date: Date) {
     `[FetchFeed] constructed URL is not valid: "${url}"`,
   );
 
-  const response: Response = await fetch(url, {
-    method: "GET",
-    headers: {
-      Accept: "application/rss+xml, application/atom+xml, text/xml, */*",
-      ...(source.previous_etag && { "If-None-Match": source.previous_etag }),
-    },
-  });
+  // TODO: second-class error handling derived from fetchFeedXml result obj
 
-  // TODO: Intricate response status handling
+  const fetched = await fetchFeedXml(url, source.previous_etag);
 
-  assert(
-    response.status === 304 || response.ok,
-    `[FetchFeed] unexpected HTTP status ${response.status} for URL: ${url}`,
-  );
-
-  if (response.status === 304) return null; // unchanged feed
+  if (fetched.statusCode === 304) return null; // unchanged feed
 
   // TODO: updating etag must be atomic with fetched insertion. if etag inserted && fetched insertion fails -> subsequent calls: wont fetch resource with identical etag and cache is empty = no articles to generate digests from
 
   await db
     .updateTable("sources")
-    .set("previous_etag", response.headers.get("ETag"))
+    .set("previous_etag", fetched.etag)
     .where("id", "=", source.id)
     .execute();
 
-  const xml = await response.text();
-  assert(xml.length > 0, "[FetchFeed] response body is empty");
-
-  return await NormalizeFeed(xml, source);
+  return await NormalizeFeed(fetched.xml, source);
 }
 
 async function ClassifyArticles(
@@ -573,6 +564,8 @@ export const newsRouter = createTRPCRouter({
 
       for (const source of sources) {
         const fetchResult = await FetchFeed(source, input);
+
+        if (!fetchResult) continue;
 
         if (fetchResult?.error) {
           console.log(
