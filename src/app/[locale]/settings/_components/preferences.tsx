@@ -13,9 +13,6 @@ import { cn } from "~/lib/utils";
 import { MAX } from "~/config/business";
 import type { RouterOutputs } from "~/trpc/react";
 
-type Category =
-  RouterOutputs["settings"]["fetch"]["preferences"]["categories"][number];
-
 function CategoryChip({
   label,
   active,
