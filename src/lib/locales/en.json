@@ -44,7 +44,7 @@
       "emailPlaceholder": "Enter your email",
       "submitButton": "Send Magic Link",
       "description": "No password needed. We'll email you a sign-in link.",
-      "magicLinkSent": "Magic link sent to <email/>. Check your inbox."
+      "magicLinkSent": "Magic link sent to <email>{address}</email>. Check your inbox."
     }
   },
   "settings": {

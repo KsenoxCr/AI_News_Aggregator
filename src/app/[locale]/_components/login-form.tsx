@@ -42,8 +42,9 @@ export function LoginForm() {
       <div className="flex flex-col">
         <Typography variant="body-sm" color="muted" className="text-center">
           {t.rich("landing.login.magicLinkSent", {
-            email: () => (
-              <span className="text-foreground font-medium">{sentEmail}</span>
+            address: sentEmail,
+            email: (chunks) => (
+              <span className="text-foreground font-medium">{chunks}</span>
             ),
           })}
         </Typography>

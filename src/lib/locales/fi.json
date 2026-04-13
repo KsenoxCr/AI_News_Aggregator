@@ -43,7 +43,7 @@
       "emailPlaceholder": "Syötä sähköpostiosoitteesi",
       "submitButton": "Lähetä maaginen linkki",
       "description": "Salasanaa ei tarvita. Lähetämme kirjautumislinkin sähköpostiisi.",
-      "magicLinkSent": "Maaginen linkki lähetetty osoitteeseen <email/>. Tarkista postilaatikkosi."
+      "magicLinkSent": "Maaginen linkki lähetetty osoitteeseen <email>{address}</email>. Tarkista postilaatikkosi."
     }
   },
   "settings": {
