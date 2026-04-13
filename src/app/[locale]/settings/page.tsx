@@ -10,6 +10,11 @@ import { Typography } from "../_components/typography";
 import { BRAND, type AgentProvider } from "~/config/business";
 import { routing, type Locale } from "~/lib/i18n/routing";
 import { SaveSettingsSchemaFactory } from "~/lib/validators/settings";
+import {
+  categoriesDelta,
+  sourcesDelta,
+  agentsDelta,
+} from "~/lib/utils/settings";
 import { LanguageSettings } from "./_components/language";
 import { SourcesSettings } from "./_components/sources";
 import { AIModelSettings, type AgentState } from "./_components/ai-model";
@@ -74,47 +79,12 @@ export default function SettingsPage() {
   });
 
   const handleSave = () => {
-    const categoriesDelta = {
-      add: categories
-        .filter((c) => settingsCategories.get(c.category) && !c.enabled)
-        .map((c) => c.category),
-      remove: categories
-        .filter((c) => !settingsCategories.get(c.category) && c.enabled)
-        .map((c) => c.category),
-    };
-    const sourcesDelta = (dbSettings?.sources ?? [])
-      .filter((s) => settingsSources.has(s.id) !== !!s.enabled)
-      .map((s) => ({ source_id: s.id, enabled: settingsSources.has(s.id) }));
-    const agentsDelta = {
-      add: agents
-        .filter((a) => !a.id)
-        .map((a) => ({ provider: a.provider, model: a.model, key: a.key })),
-      remove: (dbSettings?.agents ?? [])
-        .filter((da) => !agents.some((a) => a.id === da.id))
-        .map((da) => da.id),
-      enable: agents
-        .filter(
-          (a) =>
-            a.id &&
-            a.enabled &&
-            !dbSettings?.agents.find((da) => da.id === a.id)?.enabled,
-        )
-        .map((a) => a.id!),
-      disable: agents
-        .filter(
-          (a) =>
-            a.id &&
-            !a.enabled &&
-            dbSettings?.agents.find((da) => da.id === a.id)?.enabled,
-        )
-        .map((a) => a.id!),
-    };
     const schema = SaveSettingsSchemaFactory(t);
     const parsed = schema.safeParse({
-      sources: sourcesDelta,
-      agents: agentsDelta,
+      sources: sourcesDelta(dbSettings?.sources ?? [], settingsSources),
+      agents: agentsDelta(agents, dbSettings?.agents ?? []),
       preferences: {
-        categories: categoriesDelta,
+        categories: categoriesDelta(categories, settingsCategories),
         preferences: freeform,
         locale: selectedLocale,
       },
