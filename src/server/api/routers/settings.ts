@@ -49,8 +49,7 @@ export const settingsRouter = createTRPCRouter({
 
     const agentsWithModels = await Promise.all(
       agents.map(async (a) => {
-        const adapter = AgentAdapterFactory(a.provider as AgentProvider);
-        await adapter.configure(a.key, a.model);
+        const { adapter } = await AgentAdapterFactory(a.provider as AgentProvider, a.key, a.model);
         const result = await adapter.listModels();
         return {
           ...a,
@@ -170,8 +169,7 @@ export const settingsRouter = createTRPCRouter({
   validateAPIKey: protectedTranslatedProcedure
     .input(z.object({ provider: z.string(), key: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const adapter = AgentAdapterFactory(input.provider as AgentProvider);
-      const result = await adapter.validateAPIKey(input.key);
+      const result = await AgentAdapterFactory(input.provider as AgentProvider, input.key);
 
       return result.status === "failure"
         ? { status: "failure" as const, error: ctx.t(result.error.message) }

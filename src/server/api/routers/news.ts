@@ -38,8 +38,6 @@ import type {
   Translator,
 } from "~/server/db/types";
 
-// TODO: API Error Handling Mechanism for continuing generation where left of
-
 // TODO: Extract fns into semantically appropriate, discrete files
 
 // TODO: Frontend needs to swap old digests with their updated revisions if they were updated
@@ -708,8 +706,8 @@ export const newsRouter = createTRPCRouter({
         `[generateFeed] phase 10: calling ClassifyArticles on ${unclassified.length} articles`,
       );
 
-      const agentAdapter = AgentAdapterFactory(agent.provider as AgentProvider);
-      const configured = await agentAdapter.configure(
+      const configured = await AgentAdapterFactory(
+        agent.provider as AgentProvider,
         agent.api_key,
         agent.model,
       );
@@ -722,6 +720,7 @@ export const newsRouter = createTRPCRouter({
           },
         };
       }
+      const agentAdapter = configured.adapter;
 
       const result = await ClassifyArticles(agentAdapter, ctx.t, unclassified);
 

@@ -1,25 +1,39 @@
 import { AGENT } from "~/config/business";
-import type { AgentEndpoint, AgentProvider } from "~/config/business";
+import type { AgentProvider } from "~/config/business";
 import {
   AnthropicAdapter,
   OAIAdapter,
-  // OpenRouterAdapter,
   type AgentAdapter,
   type AgentInput,
 } from "../adapters/agent";
 
-export function AgentAdapterFactory(provider: AgentProvider): AgentAdapter {
+// TODO: API key storage & retrieval need crypt with .env MK
+
+export async function AgentAdapterFactory(
+  provider: AgentProvider,
+  apiKey: string,
+  model = "",
+): Promise<
+  | { status: "success"; models: string[]; adapter: AgentAdapter }
+  | {
+      status: "failure";
+      error: { code: string; message: string };
+      adapter: AgentAdapter;
+    }
+> {
+  let adapter: AgentAdapter;
   switch (provider) {
     case AGENT.PROVIDERS.OpenAI:
-      return OAIAdapter;
-    // case AGENT.PROVIDERS.OpenRouter:
-    //   return OpenRouterAdapter;
+      adapter = OAIAdapter;
+      break;
     case AGENT.PROVIDERS.Anthropic:
-      return AnthropicAdapter;
+      adapter = AnthropicAdapter;
+      break;
     default:
-      const _exhaustive: never = provider;
       throw new Error(`Unhandled provider: ${provider}`);
   }
+  const result = await adapter.configure(apiKey, model);
+  return { ...result, adapter };
 }
 
 export function AgentInputFactory(
@@ -34,7 +48,6 @@ export function AgentInputFactory(
   const { endpoint, model } = adapter;
   switch (endpoint) {
     case AGENT.ENDPOINTS.OpenAI:
-      // case AGENT.ENDPOINTS.OpenRouter:
       return {
         endpoint,
         model,
@@ -68,7 +81,6 @@ export function AgentInputFactory(
         max_tokens: 1024, // TODO: Fine-tune
       };
     default:
-      const _exhaustive: never = endpoint;
       throw new Error(`Unhandled case: ${endpoint}`);
   }
 }
