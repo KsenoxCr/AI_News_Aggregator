@@ -117,14 +117,24 @@ export const settingsRouter = createTRPCRouter({
       if (validated.agents.enable.length > 0)
         await Promise.all(
           validated.agents.enable.map((id) =>
-            db.updateTable("agents").set("enabled", 1).where("id", "=", id).where("user_id", "=", userId).execute(),
+            db
+              .updateTable("agents")
+              .set("enabled", 1)
+              .where("id", "=", id)
+              .where("user_id", "=", userId)
+              .execute(),
           ),
         );
 
       if (validated.agents.disable.length > 0)
         await Promise.all(
           validated.agents.disable.map((id) =>
-            db.updateTable("agents").set("enabled", 0).where("id", "=", id).where("user_id", "=", userId).execute(),
+            db
+              .updateTable("agents")
+              .set("enabled", 0)
+              .where("id", "=", id)
+              .where("user_id", "=", userId)
+              .execute(),
           ),
         );
 
