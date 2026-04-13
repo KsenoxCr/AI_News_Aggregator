@@ -22,22 +22,6 @@ export const settingsRouter = createTRPCRouter({
   load: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.session.user.id;
 
-    const referrer = ctx.headers.get("referer") ?? "";
-    const isSettings = /\/settings/.test(referrer);
-
-    if (!isSettings) {
-      const userCategories = await db
-        .selectFrom("user_categories")
-        .select("category")
-        .where("user_id", "=", userId)
-        .execute();
-
-      return {
-        status: "success" as const,
-        categories: userCategories.map((uc) => uc.category),
-      };
-    }
-
     const [sources, agents, allCategories, userCategories, user] =
       await Promise.all([
         db
@@ -93,6 +77,15 @@ export const settingsRouter = createTRPCRouter({
         locale: user.locale,
       },
     };
+  }),
+  getCategories: protectedProcedure.query(async ({ ctx }) => {
+    const userCategories = await db
+      .selectFrom("user_categories")
+      .select("category")
+      .where("user_id", "=", ctx.session.user.id)
+      .execute();
+
+    return userCategories.map((uc) => uc.category);
   }),
   save: protectedTranslatedProcedure
     .input(z.unknown())

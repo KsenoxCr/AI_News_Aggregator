@@ -1,8 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { ArrowLeft, Calendar, Menu } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "~/lib/i18n/routing";
+import { api } from "~/trpc/react";
+import { slugToLabel } from "~/lib/utils/ui";
 import { Button } from "~/components/ui/button";
 import {
   Drawer,
@@ -20,14 +23,6 @@ import { authClient } from "~/server/better-auth/client";
 // ---------------------------------------------------------------------------
 
 // TODO: "Missing settings" toast if settings load query missing any critical setting
-
-const CATEGORIES = [
-  { slug: "technology", label: "Technology", active: true },
-  { slug: "politics", label: "Politics", active: false },
-  { slug: "finance", label: "Finance", active: false },
-  { slug: "science", label: "Science", active: false },
-  { slug: "climate", label: "Climate", active: false },
-] as const;
 
 const TIMEFRAME = {
   from: "Mar 2, 2026",
@@ -120,9 +115,18 @@ function ArticleCard({ article }: { article: (typeof ARTICLES)[number] }) {
   );
 }
 
+type Category = { slug: string; active: boolean };
+
 export default function FeedPage() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
+  const { data: categoriesData } = api.settings.getCategories.useQuery();
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    if (!categoriesData) return;
+    setCategories(categoriesData.map((slug) => ({ slug, active: false })));
+  }, [categoriesData]);
 
   const handleLogout = async () => {
     await authClient.signOut();
@@ -188,7 +192,7 @@ export default function FeedPage() {
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             {/* Category chips */}
             <div className="flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
-              {CATEGORIES.map((cat) => (
+              {categories.map((cat) => (
                 <button
                   key={cat.slug}
                   className={cn(
@@ -198,7 +202,7 @@ export default function FeedPage() {
                       : "bg-muted text-muted-foreground hover:bg-muted/80",
                   )}
                 >
-                  {cat.label}
+                  {slugToLabel(cat.slug)}
                 </button>
               ))}
             </div>
