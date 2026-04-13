@@ -1,4 +1,4 @@
-import createNextIntlPlugin from "next-intl/plugin"
+import createNextIntlPlugin from "next-intl/plugin";
 
 /**
  * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially useful
@@ -6,7 +6,11 @@ import createNextIntlPlugin from "next-intl/plugin"
  */
 import "./src/env.js";
 
-const withNextIntl = createNextIntlPlugin("./src/lib/i18n/request.ts")
+const withNextIntl = createNextIntlPlugin("./src/lib/i18n/request.ts");
 
 /** @type {import("next").NextConfig} */
-export default withNextIntl();
+const config = {
+  serverExternalPackages: ["sodium-native"],
+};
+
+export default withNextIntl(config);
