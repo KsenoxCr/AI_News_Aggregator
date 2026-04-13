@@ -90,6 +90,9 @@
       "sourceUrlExists": "URL-osoite on jo käytössä",
       "categoryExists": "Kategoria on jo olemassa"
     },
+    "source": {
+      "notFound": "Lähdettä ei löydy"
+    },
     "api": {
       "invalidApiKey": "Virheellinen API-avain",
       "insufficientPermissions": "API-avaimella ei ole vaadittavia oikeuksia",

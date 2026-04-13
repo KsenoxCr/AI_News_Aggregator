@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "~/lib/i18n/routing";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Button } from "~/components/ui/button";
@@ -25,6 +26,7 @@ const TOAST_POS = { position: "top-center" } as const;
 
 export default function SettingsPage() {
   const t = useTranslations();
+  const router = useRouter();
   const utils = api.useUtils();
   const { data: dbSettings } = api.settings.load.useQuery();
 
@@ -74,6 +76,11 @@ export default function SettingsPage() {
     onSuccess: async () => {
       await utils.settings.load.invalidate();
       toast.success(t("success.settings.saved"), TOAST_POS);
+      if (selectedLocale !== dbSettings?.preferences.locale) {
+        setTimeout(() => {
+          router.replace("/settings", { locale: selectedLocale });
+        }, 1000);
+      }
     },
     onError: (err) => toast.error(err.message, TOAST_POS),
   });

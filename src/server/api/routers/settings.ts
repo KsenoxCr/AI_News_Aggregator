@@ -190,7 +190,6 @@ export const settingsRouter = createTRPCRouter({
       const validated = schema.parse(input);
 
       // TODO: Fetch-based feed format validation
-      // TODO: translate err msgs
 
       const sourceId = crypto.randomUUID();
 
@@ -209,14 +208,14 @@ export const settingsRouter = createTRPCRouter({
           return {
             status: "failure",
             errorCode: "CONFLICT",
-            error: "Name already in use",
+            error: ctx.t("errors.conflicts.sourceNameExists"),
           };
 
         if (IsDuplicateEntry(err, "url"))
           return {
             status: "failure",
             errorCode: "CONFLICT",
-            error: "URL already in use",
+            error: ctx.t("errors.conflicts.sourceUrlExists"),
           };
 
         return { status: "failure", errorCode: err.code, error: err.message };
@@ -239,10 +238,8 @@ export const settingsRouter = createTRPCRouter({
         .where("user_id", "=", ctx.session.user.id)
         .execute();
 
-      // TODO: add translated err msg
-
       if (result[0]!.numDeletedRows === 0n)
-        return { status: "failure", error: "NOT_FOUND" };
+        return { status: "failure", error: ctx.t("errors.source.notFound") };
 
       return { status: "success" };
     }),

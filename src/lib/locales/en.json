@@ -91,6 +91,9 @@
       "sourceUrlExists": "URL already in use",
       "categoryExists": "Category already exists"
     },
+    "source": {
+      "notFound": "Source not found"
+    },
     "api": {
       "invalidApiKey": "Invalid API key",
       "insufficientPermissions": "API key does not have required permissions",
