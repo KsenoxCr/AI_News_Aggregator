@@ -18,6 +18,7 @@ import {
 import { db } from "~/server/db/db";
 import type { AgentAdapter, SendRequestResult } from "~/lib/adapters/agent";
 import { AgentAdapterFactory, AgentInputFactory } from "~/lib/factories/agent";
+import { decrypt } from "~/lib/utils/crypto";
 import z from "zod";
 import type { AgentProvider } from "~/config/business";
 import {
@@ -708,7 +709,7 @@ export const newsRouter = createTRPCRouter({
 
       const configured = await AgentAdapterFactory(
         agent.provider as AgentProvider,
-        agent.api_key,
+        decrypt(ctx.mk, agent.api_key),
         agent.model,
       );
       if (configured.status === "failure") {

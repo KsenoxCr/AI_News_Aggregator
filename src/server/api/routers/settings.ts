@@ -13,7 +13,7 @@ import {
 import { IsDuplicateEntry } from "~/server/lib/util";
 import type { AgentProvider } from "~/config/business";
 import { AgentAdapterFactory } from "~/lib/factories/agent";
-import { encrypt } from "~/lib/utils/crypto";
+import { encrypt, decrypt } from "~/lib/utils/crypto";
 
 export const settingsRouter = createTRPCRouter({
   // TODO: Feature: separate agents for classification & digest generation
@@ -52,7 +52,7 @@ export const settingsRouter = createTRPCRouter({
       agents.map(async (a) => {
         const { adapter } = await AgentAdapterFactory(
           a.provider as AgentProvider,
-          a.key,
+          decrypt(ctx.mk, a.key),
           a.model,
         );
         const result = await adapter.listModels();
