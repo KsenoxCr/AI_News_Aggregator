@@ -13,6 +13,7 @@ import {
 import { IsDuplicateEntry } from "~/server/lib/util";
 import type { AgentProvider } from "~/config/business";
 import { AgentAdapterFactory } from "~/lib/factories/agent";
+import { encrypt } from "~/lib/utils/crypto";
 
 export const settingsRouter = createTRPCRouter({
   // TODO: Feature: separate agents for classification & digest generation
@@ -49,7 +50,11 @@ export const settingsRouter = createTRPCRouter({
 
     const agentsWithModels = await Promise.all(
       agents.map(async (a) => {
-        const { adapter } = await AgentAdapterFactory(a.provider as AgentProvider, a.key, a.model);
+        const { adapter } = await AgentAdapterFactory(
+          a.provider as AgentProvider,
+          a.key,
+          a.model,
+        );
         const result = await adapter.listModels();
         return {
           ...a,
@@ -98,7 +103,7 @@ export const settingsRouter = createTRPCRouter({
               user_id: userId,
               provider: a.provider,
               model: a.model,
-              api_key: a.key,
+              api_key: encrypt(ctx.mk, a.key),
               slug: a.provider,
               enabled: 1,
             })),
@@ -169,7 +174,10 @@ export const settingsRouter = createTRPCRouter({
   validateAPIKey: protectedTranslatedProcedure
     .input(z.object({ provider: z.string(), key: z.string() }))
     .mutation(async ({ ctx, input }) => {
-      const result = await AgentAdapterFactory(input.provider as AgentProvider, input.key);
+      const result = await AgentAdapterFactory(
+        input.provider as AgentProvider,
+        input.key,
+      );
 
       return result.status === "failure"
         ? { status: "failure" as const, error: ctx.t(result.error.message) }
