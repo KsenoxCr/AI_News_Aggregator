@@ -40,7 +40,7 @@ export function SourcesSettings({
         return;
       }
       setSettingsSources((prev) => new Set(prev).add(result.source!.id));
-      void utils.settings.fetch.invalidate();
+      void utils.settings.load.invalidate();
       setNewSlug("");
       setNewUrl("");
       toast.success(t("success.source.added"), TOAST_POS);

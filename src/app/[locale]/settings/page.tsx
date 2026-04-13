@@ -26,7 +26,7 @@ const TOAST_POS = { position: "top-center" } as const;
 export default function SettingsPage() {
   const t = useTranslations();
   const utils = api.useUtils();
-  const { data: dbSettings } = api.settings.fetch.useQuery();
+  const { data: dbSettings } = api.settings.load.useQuery();
 
   const [selectedLocale, setSelectedLocale] = useState<Locale>(
     routing.defaultLocale,
@@ -72,7 +72,7 @@ export default function SettingsPage() {
 
   const saveMutation = api.settings.save.useMutation({
     onSuccess: async () => {
-      await utils.settings.fetch.invalidate();
+      await utils.settings.load.invalidate();
       toast.success(t("success.settings.saved"), TOAST_POS);
     },
     onError: (err) => toast.error(err.message, TOAST_POS),

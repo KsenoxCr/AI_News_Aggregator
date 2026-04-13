@@ -17,8 +17,7 @@ import { AgentAdapterFactory } from "~/lib/factories/agent";
 export const settingsRouter = createTRPCRouter({
   // TODO: Feature: separate agents for classification & digest generation
   // TODO: coalesh all schema, validated lines to just validated by method chaining
-  fetch: protectedProcedure.query(async ({ ctx }) => {
-    // TODO: fetch -> load
+  load: protectedProcedure.query(async ({ ctx }) => {
     const userId = ctx.session.user.id;
 
     const [sources, agents, allCategories, userCategories, user] =
