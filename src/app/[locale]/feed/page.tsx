@@ -5,10 +5,12 @@ import { ArrowLeft, CalendarIcon, Menu } from "lucide-react";
 import Link from "next/link";
 import { useLocale } from "next-intl";
 
+import { toast } from "sonner";
 import { useRouter, type Locale } from "~/lib/i18n/routing";
-import { api } from "~/trpc/react";
+import { api, type RouterOutputs } from "~/trpc/react";
 import { slugToLabel, formatLocaleDate } from "~/lib/utils/ui";
 import { Button } from "~/components/ui/button";
+import { Spinner } from "~/components/ui/spinner";
 import { Calendar } from "~/components/ui/calendar";
 import {
   Drawer,
@@ -121,9 +123,9 @@ function ArticleCard({ article }: { article: (typeof ARTICLES)[number] }) {
 function FeedView() {
   return (
     <main className="mx-auto max-w-3xl space-y-3 px-4 py-5 md:px-6">
-      {ARTICLES.map((article) => (
-        <ArticleCard key={article.id} article={article} />
-      ))}
+      {/* {ARTICLES.map((article) => ( */}
+      {/*   <ArticleCard key={article.id} article={article} /> */}
+      {/* ))} */}
     </main>
   );
 }
@@ -152,11 +154,17 @@ export default function FeedPage() {
   const [timezone, setTimezone] = useState<string>("");
   const [settingsConfirmed, setSettingsConfirmed] = useState(false);
   const [settingsMessage, setSettingsMessage] = useState<string>("");
+  type FeedItem =
+    RouterOutputs["news"]["generateFeed"] extends AsyncIterable<infer T>
+      ? T
+      : never;
+  const [feedData, setFeedData] = useState<FeedItem | null>(null);
 
   const { data: categoriesData } = api.settings.getCategories.useQuery();
   const { data: confirmData } = api.settings.confirmRequired.useQuery();
   api.news.generateFeed.useSubscription(calendarDate ?? new Date(), {
     enabled: settingsConfirmed,
+    onData: (data) => setFeedData(data),
   });
 
   useEffect(() => {
@@ -176,6 +184,11 @@ export default function FeedPage() {
       setSettingsMessage(confirmData.error);
     }
   }, [confirmData]);
+
+  useEffect(() => {
+    if (feedData?.status === "failure" && feedData.error)
+      toast.error(feedData.error.message, { position: "top-center" });
+  }, [feedData]);
 
   const handleLogout = async () => {
     await authClient.signOut();
@@ -299,7 +312,11 @@ export default function FeedPage() {
         <FeedView />
       ) : !settingsConfirmed && settingsMessage ? (
         <MissingView message={settingsMessage} />
-      ) : null}
+      ) : (
+        <div className="flex h-[60vh] items-center justify-center">
+          <Spinner />
+        </div>
+      )}
     </div>
   );
 }

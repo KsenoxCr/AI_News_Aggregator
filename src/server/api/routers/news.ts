@@ -143,7 +143,7 @@ async function FetchFeed(source: Source, date: Date) {
 
 async function ClassifyArticles(
   agentAdapter: AgentAdapter,
-  _translator: Translator,
+  translator: Translator,
   articles: ArticleWithCategories[],
 ): Promise<ClassifyArticlesResult> {
   assert(
@@ -178,7 +178,11 @@ async function ClassifyArticles(
 
   const result = await agentAdapter.sendRequest(input, outputSchema);
 
-  if (result.status === "failure") return result;
+  if (result.status === "failure")
+    return {
+      status: "failure",
+      error: { ...result.error, message: translator(result.error.message) },
+    };
 
   const classified = result.data;
 
@@ -648,6 +652,7 @@ export const newsRouter = createTRPCRouter({
         await db
           .insertInto("cached_articles")
           .values(StripCategories(fetchedArray))
+          .ignore()
           .execute();
 
         console.log(
@@ -722,13 +727,7 @@ export const newsRouter = createTRPCRouter({
         console.log(
           `[generateFeed] phase 10: classification failed — code: "${result.error.code}", message: "${result.error.message}"`,
         );
-        return yield {
-          status: result.status,
-          error: {
-            code: result.error.code,
-            message: ctx.t(result.error.message),
-          },
-        };
+        return yield { status: result.status, error: result.error };
       }
 
       console.log(
