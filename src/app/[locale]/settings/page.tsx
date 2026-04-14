@@ -24,6 +24,8 @@ import { api } from "~/trpc/react";
 
 const TOAST_POS = { position: "top-center" } as const;
 
+// TODO: instructions popup "?" to providers API key guide
+
 export default function SettingsPage() {
   const t = useTranslations();
   const router = useRouter();
@@ -62,7 +64,7 @@ export default function SettingsPage() {
         provider: a.provider as AgentProvider,
         model: a.model,
         enabled: !!a.enabled,
-        key: a.key ? a.key.slice(0, 5) : "",
+        key: a.key ?? "",
         models: a.models,
       })),
     );
@@ -97,10 +99,23 @@ export default function SettingsPage() {
       },
     });
 
+    console.log({
+      sources: sourcesDelta(dbSettings?.sources ?? [], settingsSources),
+      agents: agentsDelta(agents, dbSettings?.agents ?? []),
+      preferences: {
+        categories: categoriesDelta(categories, settingsCategories),
+        preferences: freeform,
+        locale: selectedLocale,
+      },
+    });
+
     if (!parsed.success) {
       toast.error(parsed.error.errors[0]?.message, TOAST_POS);
       return;
     }
+
+    console.log("test2");
+
     saveMutation.mutate(parsed.data);
   };
 
