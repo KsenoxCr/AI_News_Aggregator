@@ -65,7 +65,10 @@
       "add": "Lisää",
       "models": "Mallit",
       "waitingForKey": "Odotetaan API-avainta...",
-      "remove": "Poista"
+      "remove": "Poista",
+      "enable": "Ota käyttöön",
+      "disable": "Poista käytöstä",
+      "modelRequired": "Valitse malli ennen käyttöönottoa"
     },
     "preferences": {
       "title": "Mieltymykset",
@@ -95,6 +98,13 @@
     },
     "feed": {
       "invalidFormat": "Virheellinen syötemuoto"
+    },
+    "settings": {
+      "missing": {
+        "source": "Lähteet",
+        "agent": "Tekoälymalli",
+        "required": "Vaaditut asetukset puuttuvat: {missing}"
+      }
     },
     "api": {
       "invalidApiKey": "Virheellinen API-avain",

@@ -49,11 +49,18 @@ export const settingsRouter = createTRPCRouter({
 
     const userCategorySet = new Set(userCategories.map((uc) => uc.category));
 
+    // FIX: decryption
+
     const agentsWithModels = await Promise.all(
       agents.map(async (a) => {
+        console.log("enc:" + a.key);
+        console.log("decr:" + decrypt(ctx.mk, a.key));
+
+        a.key = decrypt(ctx.mk, a.key);
+
         const { adapter } = await AgentAdapterFactory(
           a.provider as AgentProvider,
-          decrypt(ctx.mk, a.key),
+          a.key,
           a.model,
         );
         const result = await adapter.listModels();
@@ -77,6 +84,39 @@ export const settingsRouter = createTRPCRouter({
         locale: user.locale,
       },
     };
+  }),
+  confirmRequired: protectedTranslatedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
+    const missing: string[] = [];
+
+    const [sources, agents] = await Promise.all([
+      db
+        .selectFrom("sources")
+        .where("user_id", "=", userId)
+        .where("enabled", "=", 1)
+        .select(({ fn }) => fn.count("id").as("count"))
+        .executeTakeFirst(),
+      db
+        .selectFrom("agents")
+        .where("user_id", "=", userId)
+        .where("enabled", "=", 1)
+        .select(({ fn }) => fn.count("id").as("count"))
+        .executeTakeFirst(),
+    ]);
+
+    if (Number(sources?.count ?? 0) === 0)
+      missing.push(ctx.t("errors.settings.missing.source"));
+    if (Number(agents?.count ?? 0) === 0)
+      missing.push(ctx.t("errors.settings.missing.agent"));
+
+    if (missing.length > 0)
+      return {
+        status: "failure" as const,
+        error: ctx.t("errors.settings.missing.required", {
+          missing: missing.join(", "),
+        }),
+      };
+    return { status: "success" as const };
   }),
   getCategories: protectedProcedure.query(async ({ ctx }) => {
     const userCategories = await db
