@@ -32,7 +32,9 @@ interface Props {
   agents: AgentState[];
   setAgents: React.Dispatch<React.SetStateAction<AgentState[]>>;
   prevEnabledAgent: AgentProvider | null;
-  setPrevEnabledAgent: React.Dispatch<React.SetStateAction<AgentProvider | null>>;
+  setPrevEnabledAgent: React.Dispatch<
+    React.SetStateAction<AgentProvider | null>
+  >;
 }
 
 export function AIModelSettings({
@@ -45,6 +47,33 @@ export function AIModelSettings({
   const [apiKeyInputs, setApiKeyInputs] = useState<Map<AgentProvider, string>>(
     new Map(),
   );
+
+  const handleAgentStatus = (
+    provider: AgentProvider,
+    enable: boolean,
+    model: string,
+  ) => {
+    if (enable) {
+      if (!model) {
+        toast.error(t("settings.aiModel.modelRequired"), TOAST_POS);
+        return;
+      }
+      setAgents((prev) =>
+        prev.map((a) => {
+          if (a.provider === provider) return { ...a, enabled: true };
+          if (a.provider === prevEnabledAgent) return { ...a, enabled: false };
+          return a;
+        }),
+      );
+      setPrevEnabledAgent(provider);
+    } else {
+      setAgents((prev) =>
+        prev.map((a) =>
+          a.provider === provider ? { ...a, enabled: false } : a,
+        ),
+      );
+    }
+  };
 
   const validateAPIKeyMutation = api.settings.validateAPIKey.useMutation({
     onError: (err) => toast.error(err.message, TOAST_POS),
@@ -73,7 +102,7 @@ export function AIModelSettings({
           provider,
           model: "",
           enabled: false,
-          key: parsed.data.key.slice(0, 5),
+          key: parsed.data.key,
           models: result.models,
         },
       ]);
@@ -103,13 +132,24 @@ export function AIModelSettings({
                 />
               </PopoverTrigger>
               <PopoverContent align="start" className="max-h-110 w-64">
-                <Typography
-                  variant="body-sm"
-                  weight="semibold"
-                  className="mb-3 block"
-                >
-                  {provider}
-                </Typography>
+                <div className="mb-3 flex items-center justify-between">
+                  <Typography variant="body-sm" weight="semibold">
+                    {provider}
+                  </Typography>
+                  {agent && (
+                    <Button
+                      size="sm"
+                      variant={agent.enabled ? "outline" : "default"}
+                      onClick={() =>
+                        handleAgentStatus(provider, !agent.enabled, agent.model)
+                      }
+                    >
+                      {agent.enabled
+                        ? t("settings.aiModel.disable")
+                        : t("settings.aiModel.enable")}
+                    </Button>
+                  )}
+                </div>
                 <form
                   className="flex gap-2"
                   onSubmit={async (e) => {
@@ -129,7 +169,7 @@ export function AIModelSettings({
                     disabled={!!agent}
                     value={
                       agent
-                        ? agent.key + "*".repeat(32)
+                        ? agent.key.slice(0, 6) + "*".repeat(32)
                         : (apiKeyInputs.get(provider) ?? "")
                     }
                     onChange={(e) =>
@@ -141,6 +181,7 @@ export function AIModelSettings({
                   <Button
                     type="submit"
                     size="sm"
+                    variant={agent ? "destructive" : "default"}
                     className="shrink-0"
                     disabled={validateAPIKeyMutation.isPending}
                   >
@@ -168,25 +209,28 @@ export function AIModelSettings({
                     </Typography>
                   ) : (
                     <div className="flex flex-col gap-1">
-                      {[
-                        agent.model,
-                        ...agent.models.filter((m) => m !== agent.model),
-                      ].map((model) => (
+                      {(agent.model
+                        ? [
+                            agent.model,
+                            ...agent.models.filter((m) => m !== agent.model),
+                          ]
+                        : agent.models
+                      ).map((model) => (
                         <Typography
                           key={model}
                           as="button"
                           variant="body-sm"
                           onClick={() => {
                             setAgents((prev) =>
-                              prev.map((a) => {
-                                if (a.provider === provider)
-                                  return { ...a, model, enabled: true };
-                                if (a.provider === prevEnabledAgent)
-                                  return { ...a, enabled: false };
-                                return a;
-                              }),
+                              prev.map((a) =>
+                                a.provider === provider
+                                  ? {
+                                      ...a,
+                                      model: a.model === model ? "" : model,
+                                    }
+                                  : a,
+                              ),
                             );
-                            setPrevEnabledAgent(provider);
                           }}
                           className={cn(
                             "rounded px-2 py-1 text-left transition-colors",
