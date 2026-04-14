@@ -1,33 +1,36 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, Calendar, Menu } from "lucide-react";
+import { ArrowLeft, CalendarIcon, Menu } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "~/lib/i18n/routing";
+import { useLocale } from "next-intl";
+
+import { useRouter, type Locale } from "~/lib/i18n/routing";
 import { api } from "~/trpc/react";
-import { slugToLabel } from "~/lib/utils/ui";
+import { slugToLabel, formatLocaleDate } from "~/lib/utils/ui";
 import { Button } from "~/components/ui/button";
+import { Calendar } from "~/components/ui/calendar";
 import {
   Drawer,
   DrawerClose,
   DrawerContent,
   DrawerTrigger,
 } from "~/components/ui/drawer";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "~/components/ui/popover";
 import { Typography } from "../_components/typography";
 import { cn } from "~/lib/utils";
-import { BRAND } from "~/config/business";
+import { BRAND, MAX } from "~/config/business";
 import { authClient } from "~/server/better-auth/client";
+
+// TODO: "Missing settings" toast if settings load query missing any critical setting
 
 // ---------------------------------------------------------------------------
 // Static scaffold data
 // ---------------------------------------------------------------------------
-
-// TODO: "Missing settings" toast if settings load query missing any critical setting
-
-const TIMEFRAME = {
-  from: "Mar 2, 2026",
-  to: "Mar 9, 2026",
-} as const;
 
 const ARTICLES = [
   {
@@ -115,18 +118,64 @@ function ArticleCard({ article }: { article: (typeof ARTICLES)[number] }) {
   );
 }
 
+function FeedView() {
+  return (
+    <main className="mx-auto max-w-3xl space-y-3 px-4 py-5 md:px-6">
+      {ARTICLES.map((article) => (
+        <ArticleCard key={article.id} article={article} />
+      ))}
+    </main>
+  );
+}
+
+function MissingView({ message }: { message: string }) {
+  return (
+    <div className="flex h-[60vh] flex-col items-center justify-center gap-4 px-4">
+      <Typography variant="body-sm" color="muted" className="text-center">
+        {message}
+      </Typography>
+      <Button variant="outline" size="sm" asChild>
+        <Link href="/settings">Settings</Link>
+      </Button>
+    </div>
+  );
+}
+
 type Category = { slug: string; active: boolean };
 
 export default function FeedPage() {
   const router = useRouter();
+  const locale = useLocale() as Locale;
   const { data: session } = authClient.useSession();
-  const { data: categoriesData } = api.settings.getCategories.useQuery();
   const [categories, setCategories] = useState<Category[]>([]);
+  const [calendarDate, setCalendarDate] = useState<Date | undefined>();
+  const [timezone, setTimezone] = useState<string>("");
+  const [settingsConfirmed, setSettingsConfirmed] = useState(false);
+  const [settingsMessage, setSettingsMessage] = useState<string>("");
+
+  const { data: categoriesData } = api.settings.getCategories.useQuery();
+  const { data: confirmData } = api.settings.confirmRequired.useQuery();
+  api.news.generateFeed.useSubscription(calendarDate ?? new Date(), {
+    enabled: settingsConfirmed,
+  });
+
+  useEffect(() => {
+    setTimezone(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  }, []);
 
   useEffect(() => {
     if (!categoriesData) return;
     setCategories(categoriesData.map((slug) => ({ slug, active: false })));
   }, [categoriesData]);
+
+  useEffect(() => {
+    if (!confirmData) return;
+    if (confirmData.status === "success") {
+      setSettingsConfirmed(true);
+    } else {
+      setSettingsMessage(confirmData.error);
+    }
+  }, [confirmData]);
 
   const handleLogout = async () => {
     await authClient.signOut();
@@ -208,24 +257,49 @@ export default function FeedPage() {
             </div>
 
             {/* Timeframe */}
-            <Button
-              variant="outline"
-              size="sm"
-              className="shrink-0 gap-2 self-start md:self-auto"
-            >
-              {TIMEFRAME.from}&nbsp;–&nbsp;{TIMEFRAME.to}
-              <Calendar className="size-4" />
-            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="shrink-0 gap-2 self-start md:self-auto"
+                >
+                  {(() => {
+                    const today = new Date();
+                    const fmt = (d: Date) =>
+                      formatLocaleDate(d, locale, timezone || undefined);
+                    const isSameDay =
+                      !calendarDate ||
+                      calendarDate.toDateString() === today.toDateString();
+                    return isSameDay
+                      ? fmt(today)
+                      : `${fmt(calendarDate!)}\u2013${fmt(today)}`;
+                  })()}
+                  <CalendarIcon className="size-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={calendarDate}
+                  onSelect={(d: Date | undefined) => setCalendarDate(d)}
+                  timeZone={timezone}
+                  disabled={{
+                    before: new Date(Date.now() - MAX.timeframe),
+                    after: new Date(),
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
       </div>
 
-      {/* Article list */}
-      <main className="mx-auto max-w-3xl space-y-3 px-4 py-5 md:px-6">
-        {ARTICLES.map((article) => (
-          <ArticleCard key={article.id} article={article} />
-        ))}
-      </main>
+      {settingsConfirmed && !settingsMessage ? (
+        <FeedView />
+      ) : !settingsConfirmed && settingsMessage ? (
+        <MissingView message={settingsMessage} />
+      ) : null}
     </div>
   );
 }
