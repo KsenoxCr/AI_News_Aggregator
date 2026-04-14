@@ -566,6 +566,11 @@ export const newsRouter = createTRPCRouter({
 
       console.log("[generateFeed] phase 4: fetching feeds");
 
+      yield {
+        status: "success" as const,
+        info: ctx.t("success.feed.fetchingSources"),
+      };
+
       for (const source of sources) {
         const fetchResult = await FetchFeed(source, input);
 
@@ -721,6 +726,11 @@ export const newsRouter = createTRPCRouter({
       }
       const agentAdapter = configured.adapter;
 
+      yield {
+        status: "success" as const,
+        info: ctx.t("success.feed.classifyingArticles"),
+      };
+
       const result = await ClassifyArticles(agentAdapter, ctx.t, unclassified);
 
       if (result.status === "failure") {
@@ -840,6 +850,11 @@ export const newsRouter = createTRPCRouter({
       const updateRevisions = new Map<string, NewRevision[]>();
 
       let count = 1;
+
+      yield {
+        status: "success" as const,
+        info: ctx.t("success.feed.generatingDigests"),
+      };
 
       for await (const result of GenerateDigests(
         agentAdapter,

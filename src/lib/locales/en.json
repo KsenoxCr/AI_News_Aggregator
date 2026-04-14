@@ -84,6 +84,11 @@
     },
     "settings": {
       "saved": "Settings saved successfully"
+    },
+    "feed": {
+      "fetchingSources": "Fetching articles from your sources",
+      "classifyingArticles": "Classifying articles",
+      "generatingDigests": "Generating digests"
     }
   },
   "errors": {

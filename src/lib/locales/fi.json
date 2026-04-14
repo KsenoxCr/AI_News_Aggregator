@@ -83,6 +83,11 @@
     },
     "settings": {
       "saved": "Asetukset tallennettu onnistuneesti"
+    },
+    "feed": {
+      "fetchingSources": "Haetaan artikkeleita lähteistäsi",
+      "classifyingArticles": "Luokitellaan artikkeleita",
+      "generatingDigests": "Luodaan tiivistelmiä"
     }
   },
   "errors": {

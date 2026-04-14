@@ -153,7 +153,7 @@ export default function FeedPage() {
   const [calendarDate, setCalendarDate] = useState<Date | undefined>();
   const [timezone, setTimezone] = useState<string>("");
   const [settingsConfirmed, setSettingsConfirmed] = useState(false);
-  const [settingsMessage, setSettingsMessage] = useState<string>("");
+  const [infoMessage, setInfoMessage] = useState<string>("");
   type FeedItem =
     RouterOutputs["news"]["generateFeed"] extends AsyncIterable<infer T>
       ? T
@@ -181,13 +181,16 @@ export default function FeedPage() {
     if (confirmData.status === "success") {
       setSettingsConfirmed(true);
     } else {
-      setSettingsMessage(confirmData.error);
+      setInfoMessage(confirmData.error);
     }
   }, [confirmData]);
 
   useEffect(() => {
-    if (feedData?.status === "failure" && feedData.error)
+    if (feedData?.status === "success") {
+      if (feedData.info) setInfoMessage(feedData.info);
+    } else if (feedData?.status === "failure" && feedData.error) {
       toast.error(feedData.error.message, { position: "top-center" });
+    }
   }, [feedData]);
 
   const handleLogout = async () => {
@@ -308,10 +311,10 @@ export default function FeedPage() {
         </div>
       </div>
 
-      {settingsConfirmed && !settingsMessage ? (
+      {settingsConfirmed && !infoMessage ? (
         <FeedView />
-      ) : !settingsConfirmed && settingsMessage ? (
-        <MissingView message={settingsMessage} />
+      ) : !settingsConfirmed && infoMessage ? (
+        <MissingView message={infoMessage} />
       ) : (
         <div className="flex h-[60vh] items-center justify-center">
           <Spinner />
