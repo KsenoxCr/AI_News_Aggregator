@@ -1,12 +1,14 @@
 import { z } from "zod";
 import type { TFn } from "./types";
 
-export const ClassificationSchema = z.array(
-  z.object({
-    article_id: z.string().uuid(),
-    categories: z.array(z.string().max(100)),
-  }),
-);
+export const ClassificationSchema = z.object({
+  classifications: z.array(
+    z.object({
+      article_id: z.string().uuid(),
+      categories: z.array(z.string().max(100)),
+    }),
+  ),
+});
 
 export const BaseArticleSchema = z.object({
   id: z.string(),
@@ -27,12 +29,14 @@ export const ArticleWithCatsSchema = z.array(
 export const ArticleWithCatsSchemaFactory = (t: TFn) =>
   ArticleWithCatsSchema.min(0, t("validation.agent.content.schemaMismatch"));
 
-export const DigestsIntermediarySchema = z.array(
-  z.object({
-    article_id: z.string().uuid(),
-    digests: z.array(z.union([z.string().uuid(), z.literal("new")])).min(1),
-  }),
-);
+export const DigestsIntermediarySchema = z.object({
+  routings: z.array(
+    z.object({
+      article_id: z.string().uuid(),
+      digests: z.array(z.union([z.string().uuid(), z.literal("new")])).min(1),
+    }),
+  ),
+});
 
 export const DigestRevisionSchema = z.object({
   article_id: z.string(),
