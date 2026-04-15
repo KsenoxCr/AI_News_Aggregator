@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Menu } from "lucide-react";
+import { ArrowLeft, LogOut, Menu, Settings } from "lucide-react";
 import Link from "next/link";
 import {
   Drawer,
@@ -31,7 +31,7 @@ export function Header() {
               <Menu className="size-8" />
             </button>
           </DrawerTrigger>
-          <DrawerContent className="w-1/4 p-0 before:inset-0 before:rounded-none">
+          <DrawerContent className="p-0 before:inset-0 before:rounded-none">
             <div className="bg-popover flex h-screen flex-col gap-1 p-4">
               <DrawerClose asChild>
                 <button className="text-muted-foreground mb-2 self-start">
@@ -41,15 +41,17 @@ export function Header() {
               <DrawerClose asChild>
                 <Link
                   href="/settings"
-                  className="text-foreground hover:bg-muted flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium"
+                  className="text-foreground hover:bg-muted flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium"
                 >
+                  <Settings className="size-4 opacity-60" />
                   Settings
                 </Link>
               </DrawerClose>
               <button
                 onClick={handleLogout}
-                className="text-foreground hover:bg-muted flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium"
+                className="text-foreground hover:bg-muted flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium"
               >
+                <LogOut className="size-4 opacity-60" />
                 Log out
               </button>
             </div>
