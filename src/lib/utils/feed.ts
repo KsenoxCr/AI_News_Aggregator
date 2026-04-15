@@ -1,4 +1,3 @@
-import assert from "node:assert/strict";
 import { parseRssFeed, parseAtomFeed } from "feedsmith";
 import { FEED_FORMAT, type FeedFormat } from "~/config/business";
 
@@ -21,16 +20,10 @@ export async function fetchFeedXml(
 
   // TODO: Intricate response status handling
 
-  assert(
-    response.status === 304 || response.ok,
-    `[fetchFeedXml] unexpected HTTP status ${response.status} for URL: ${url}`,
-  );
-
   if (response.status === 304)
     return { status: "success", statusCode: 304, xml: "", etag: null };
 
   const xml = await response.text();
-  assert(xml.length > 0, "[fetchFeedXml] response body is empty");
 
   return {
     status: "success",
@@ -38,6 +31,28 @@ export async function fetchFeedXml(
     xml,
     etag: response.headers.get("ETag"),
   };
+}
+
+export function PushToPages<T>(
+  pages: T[][],
+  items: T[],
+  pageSize: number,
+): T[][] {
+  const result = pages.map((p) => [...p]);
+  for (const item of items) {
+    if (result.length === 0 || result[result.length - 1]!.length >= pageSize)
+      result.push([item]);
+    else result[result.length - 1]!.push(item);
+  }
+  return result;
+}
+
+export function scrollToCenter(container: HTMLElement | null, btn: HTMLElement): void {
+  if (!container) return;
+  container.scrollTo({
+    left: btn.offsetLeft - container.clientWidth / 2 + btn.clientWidth / 2,
+    behavior: "smooth",
+  });
 }
 
 export function validateFeed(
