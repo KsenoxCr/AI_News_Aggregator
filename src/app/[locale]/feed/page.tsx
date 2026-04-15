@@ -1,136 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowUp } from "lucide-react";
-import Link from "next/link";
 import { toast } from "sonner";
 import { api, type RouterOutputs } from "~/trpc/react";
-import { Button } from "~/components/ui/button";
 import { Spinner } from "~/components/ui/spinner";
-import { Typography } from "../_components/typography";
 import { ToolBar } from "./_components/tool-bar";
 import { Header } from "./_components/header";
+import { ScrollArrow } from "./_components/scroll-arrow";
+import { PagePicker } from "./_components/page-picker";
+import { FeedView } from "./_components/feed-view";
+import { InfoView } from "./_components/info-view";
 import { FEED } from "~/config/business";
+import { PushToPages } from "~/lib/utils/feed";
+import { type Digest } from "~/lib/types/feed";
 
-// TODO: Pagination
+// Out of scope for now:
 // TODO: ToolBar: CollationOrderPicker + collation logic
-// TODO: extract rc's to _components
 // TODO: fzf search
-
-function ScrollArrow({ scrollTop }: { scrollTop: boolean }) {
-  return (
-    <button
-      onClick={() =>
-        scrollTop
-          ? window.scrollTo({ top: 0, behavior: "smooth" })
-          : window.scrollTo({
-              top: document.body.scrollHeight,
-              behavior: "smooth",
-            })
-      }
-      className="bg-background border-border text-muted-foreground hover:text-foreground fixed right-6 bottom-6 z-50 rounded-full border p-2.5 shadow-md transition-colors"
-    >
-      {scrollTop ? (
-        <ArrowUp className="size-6" />
-      ) : (
-        <ArrowDown className="size-6" />
-      )}
-    </button>
-  );
-}
-
-function CategoryBadge({ category }: { category: string }) {
-  return (
-    <span
-      className={"inline-block rounded-full px-3 py-0.5 text-xs font-semibold"}
-    >
-      {category}
-    </span>
-  );
-}
-
-type Digest = { title: string; digest: string; categories: string[] };
-
-// TODO: articleAge: "2 hours ago", generatedAge: "1 hour ago",
-
-function DigestCard({ article }: { article: Digest }) {
-  return (
-    <div className="bg-card border-border rounded-xl border p-5">
-      <div className="flex flex-col gap-2">
-        <div className="flex gap-1">
-          {article.categories.map((c) => (
-            <CategoryBadge key={c} category={c} />
-          ))}
-        </div>
-        <Typography as="h3" variant="heading-3">
-          {article.title}
-        </Typography>
-        <Typography variant="body-sm" color="muted">
-          {article.digest}
-        </Typography>
-      </div>
-    </div>
-  );
-}
-
-function FeedView({
-  digests,
-  activeCategories,
-}: {
-  digests: Digest[];
-  activeCategories: Set<string>;
-}) {
-  return (
-    <main className="mx-auto max-w-3xl space-y-3 px-4 py-5 md:px-6">
-      {digests
-        .filter((d) => d.categories.some((c) => activeCategories.has(c)))
-        .map((d, i) => (
-          <DigestCard key={i} article={d} />
-        ))}
-    </main>
-  );
-}
-
-function InfoView({
-  message,
-  isError,
-  anyDigests,
-}: {
-  message: string;
-  isError: boolean;
-  anyDigests?: boolean;
-}) {
-  if (anyDigests) {
-    return (
-      <div className="mx-auto max-w-3xl px-4 py-6 pb-12 md:px-6">
-        <div className="flex items-center justify-center gap-2">
-          <Typography variant="body-sm" color="muted">
-            {message}
-          </Typography>
-          {!isError && <Spinner className="size-4" />}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex h-[60vh] flex-col items-center justify-center gap-4 px-4">
-      <div className="flex items-center gap-2">
-        <Typography variant="body-sm" color="muted" className="text-center">
-          {message}
-        </Typography>
-        {!isError && <Spinner className="size-4" />}
-      </div>
-      {isError && (
-        <Button variant="outline" size="sm" asChild>
-          <Link href="/settings">Settings</Link>
-        </Button>
-      )}
-    </div>
-  );
-}
-
-// TODO: pagination, separate state: pages [][]
 
 export default function FeedPage() {
   const [categories, setCategories] = useState<Set<string>>(new Set());
@@ -146,7 +32,8 @@ export default function FeedPage() {
       ? T
       : never;
   const [feedData, setFeedData] = useState<FeedItem | null>(null);
-  const [digests, setDigests] = useState<Digest[]>([]);
+  const [digestPages, setDigestPages] = useState<Digest[][]>([]);
+  const [page, setPage] = useState(1);
   const [today] = useState<Date>(() => new Date());
   const [scrollTop, setScrollTop] = useState(false);
 
@@ -181,11 +68,13 @@ export default function FeedPage() {
   useEffect(() => {
     if (feedData?.status === "success") {
       if (feedData.info) setInfoMessage(feedData.info);
-      else if (feedData.digestRevisions)
-        setDigests((prev) => [...prev, ...feedData.digestRevisions!]);
-      else if (feedData.digestRevision)
-        setDigests((prev) => [...prev, feedData.digestRevision!]);
-      else if (
+      else if (feedData.digestRevisions || feedData.digestRevision) {
+        const newDigestRevisions = feedData.digestRevisions
+          ? feedData.digestRevisions
+          : [feedData.digestRevision!];
+        const newPages = PushToPages(digestPages, newDigestRevisions, pageSize);
+        setDigestPages(newPages);
+      } else if (
         !feedData.info &&
         !feedData.digestRevision &&
         !feedData.digestRevisions
@@ -196,14 +85,28 @@ export default function FeedPage() {
     }
   }, [feedData]);
 
+  useEffect(() => {
+    setDigestPages((prev) => PushToPages([], prev.flat(), pageSize));
+  }, [pageSize]);
+
   const showFeed = () => {
-    const anyDigests = digests.length > 0;
+    const anyDigests = digestPages.length > 0;
     if (anyDigests && !infoMessage)
-      return <FeedView digests={digests} activeCategories={activeCategories} />;
+      return (
+        <FeedView
+          digestPages={digestPages}
+          page={page}
+          activeCategories={activeCategories}
+        />
+      );
     if (anyDigests && infoMessage)
       return (
         <>
-          <FeedView digests={digests} activeCategories={activeCategories} />
+          <FeedView
+            digestPages={digestPages}
+            page={page}
+            activeCategories={activeCategories}
+          />
           <InfoView
             message={infoMessage}
             isError={!settingsConfirmed}
@@ -235,6 +138,11 @@ export default function FeedPage() {
       />
 
       {showFeed()}
+      <PagePicker
+        pageCount={digestPages.length}
+        page={page}
+        setPage={setPage}
+      />
       <ScrollArrow scrollTop={scrollTop} />
     </div>
   );
