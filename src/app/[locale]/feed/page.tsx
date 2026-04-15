@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { api, type RouterOutputs } from "~/trpc/react";
@@ -10,21 +10,31 @@ import { Spinner } from "~/components/ui/spinner";
 import { Typography } from "../_components/typography";
 import { ToolBar } from "./_components/tool-bar";
 import { Header } from "./_components/header";
+import { FEED } from "~/config/business";
 
-// TODO: news router prevDigests at top of generateFeed proc
-// TODO: icons for drawer options
-// TODO: categories interactivity
-// TODO: collation logic
 // TODO: Pagination
+// TODO: ToolBar: CollationOrderPicker + collation logic
+// TODO: extract rc's to _components
+// TODO: fzf search
 
-function ScrollTopArrow({ show }: { show: boolean }) {
-  if (!show) return null;
+function ScrollArrow({ scrollTop }: { scrollTop: boolean }) {
   return (
     <button
-      onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      onClick={() =>
+        scrollTop
+          ? window.scrollTo({ top: 0, behavior: "smooth" })
+          : window.scrollTo({
+              top: document.body.scrollHeight,
+              behavior: "smooth",
+            })
+      }
       className="bg-background border-border text-muted-foreground hover:text-foreground fixed right-6 bottom-6 z-50 rounded-full border p-2.5 shadow-md transition-colors"
     >
-      <ArrowUp className="size-6" />
+      {scrollTop ? (
+        <ArrowUp className="size-6" />
+      ) : (
+        <ArrowDown className="size-6" />
+      )}
     </button>
   );
 }
@@ -63,12 +73,20 @@ function DigestCard({ article }: { article: Digest }) {
   );
 }
 
-function FeedView({ digests }: { digests: Digest[] }) {
+function FeedView({
+  digests,
+  activeCategories,
+}: {
+  digests: Digest[];
+  activeCategories: Set<string>;
+}) {
   return (
     <main className="mx-auto max-w-3xl space-y-3 px-4 py-5 md:px-6">
-      {digests.map((d, i) => (
-        <DigestCard key={i} article={d} />
-      ))}
+      {digests
+        .filter((d) => d.categories.some((c) => activeCategories.has(c)))
+        .map((d, i) => (
+          <DigestCard key={i} article={d} />
+        ))}
     </main>
   );
 }
@@ -112,10 +130,14 @@ function InfoView({
   );
 }
 
-type Category = { slug: string; active: boolean };
+// TODO: pagination, separate state: pages [][]
 
 export default function FeedPage() {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Set<string>>(new Set());
+  const [activeCategories, setActiveCategories] = useState<Set<string>>(
+    new Set(),
+  );
+  const [pageSize, setPageSize] = useState<number>(FEED.paging[0]);
   const [calendarDate, setCalendarDate] = useState<Date | undefined>();
   const [settingsConfirmed, setSettingsConfirmed] = useState(false);
   const [infoMessage, setInfoMessage] = useState<string>("");
@@ -126,7 +148,7 @@ export default function FeedPage() {
   const [feedData, setFeedData] = useState<FeedItem | null>(null);
   const [digests, setDigests] = useState<Digest[]>([]);
   const [today] = useState<Date>(() => new Date());
-  const [showScrollTop, setShowScrollTop] = useState(false);
+  const [scrollTop, setScrollTop] = useState(false);
 
   const { data: categoriesData } = api.settings.getCategories.useQuery();
   const { data: confirmData } = api.settings.confirmRequired.useQuery();
@@ -136,14 +158,15 @@ export default function FeedPage() {
   });
 
   useEffect(() => {
-    const onScroll = () => setShowScrollTop(window.scrollY > 0);
+    const onScroll = () => setScrollTop(window.scrollY > 0);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   useEffect(() => {
     if (!categoriesData) return;
-    setCategories(categoriesData.map((slug) => ({ slug, active: false })));
+    setCategories(new Set(categoriesData));
+    setActiveCategories(new Set(categoriesData));
   }, [categoriesData]);
 
   useEffect(() => {
@@ -158,9 +181,16 @@ export default function FeedPage() {
   useEffect(() => {
     if (feedData?.status === "success") {
       if (feedData.info) setInfoMessage(feedData.info);
+      else if (feedData.digestRevisions)
+        setDigests((prev) => [...prev, ...feedData.digestRevisions!]);
       else if (feedData.digestRevision)
         setDigests((prev) => [...prev, feedData.digestRevision!]);
-      else if (!feedData.info && !feedData.digestRevision) setInfoMessage("");
+      else if (
+        !feedData.info &&
+        !feedData.digestRevision &&
+        !feedData.digestRevisions
+      )
+        setInfoMessage("");
     } else if (feedData?.status === "failure" && feedData.error) {
       toast.error(feedData.error.message, { position: "top-center" });
     }
@@ -168,11 +198,12 @@ export default function FeedPage() {
 
   const showFeed = () => {
     const anyDigests = digests.length > 0;
-    if (anyDigests && !infoMessage) return <FeedView digests={digests} />;
+    if (anyDigests && !infoMessage)
+      return <FeedView digests={digests} activeCategories={activeCategories} />;
     if (anyDigests && infoMessage)
       return (
         <>
-          <FeedView digests={digests} />
+          <FeedView digests={digests} activeCategories={activeCategories} />
           <InfoView
             message={infoMessage}
             isError={!settingsConfirmed}
@@ -195,12 +226,16 @@ export default function FeedPage() {
 
       <ToolBar
         categories={categories}
+        activeCategories={activeCategories}
+        setActiveCategories={setActiveCategories}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
         calendarDate={calendarDate}
         setCalendarDate={setCalendarDate}
       />
 
       {showFeed()}
-      <ScrollTopArrow show={showScrollTop} />
+      <ScrollArrow scrollTop={scrollTop} />
     </div>
   );
 }
