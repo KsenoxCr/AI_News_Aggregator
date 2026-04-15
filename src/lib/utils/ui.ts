@@ -19,7 +19,7 @@ export function formatLocaleDate(
       intlLocale = "fi-FI";
       break;
     default:
-      locale satisfies never;
+      throw new Error(`Unhandled locale: ${locale satisfies never}`);
   }
 
   const opts: Intl.DateTimeFormatOptions = {

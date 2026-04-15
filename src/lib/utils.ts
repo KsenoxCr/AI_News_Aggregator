@@ -4,6 +4,8 @@ import { twMerge } from "tailwind-merge";
 import { DATE_FORMAT, type DateFormat } from "~/config/business";
 import z from "zod";
 
+// TODO: -> utils/style.ts
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
@@ -18,6 +20,8 @@ export function cn(...inputs: ClassValue[]) {
  * @param h  Hue        degrees [0, 360)
  * @param alpha  Opacity [0, 1] — when < 1 returns 8-digit hex (#rrggbbaa)
  */
+
+// TODO: -> utils/style.ts
 
 export function oklchToHex(l: number, c: number, h: number, alpha = 1): string {
   // 1. OKLCH → OKLab
@@ -59,6 +63,8 @@ export function oklchToHex(l: number, c: number, h: number, alpha = 1): string {
   return `#${hex}`;
 }
 
+// TODO: -> utils/ui.ts
+
 export function formatDate(date: Date, dateFormat: DateFormat): string {
   switch (dateFormat) {
     case DATE_FORMAT.ISO_8601:
@@ -72,20 +78,25 @@ export function formatDate(date: Date, dateFormat: DateFormat): string {
     case DATE_FORMAT.RFC_822:
       return format(date, "dd MMM yyyy HH:mm:ss xx");
     default:
-      const _exhaustive: never = dateFormat;
-      throw new Error(`Unhandled date format: ${_exhaustive}`);
+      throw new Error(`Unhandled date format: ${dateFormat satisfies never}`);
   }
 }
+
+// TODO: -> utils/general.ts
 
 export function Keys<T extends object>(o: T): (keyof T)[] {
   return Object.keys(o) as (keyof T)[];
 }
+
+// TODO: -> utils/general.ts
 
 export function KeysRecord<T extends object>(obj: T): { [K in keyof T]: K } {
   return Object.fromEntries(Object.keys(obj).map((k) => [k, k])) as {
     [K in keyof T]: K;
   };
 }
+
+// TODO: -> utils/general.ts
 
 export function ObjectKeysEnum<T extends Record<string, string>>(obj: T) {
   return z.enum(

@@ -53,7 +53,7 @@ export function validateFeed(
         parseAtomFeed(xml);
         break;
       default:
-        format satisfies never;
+        throw new Error(`Unhandled feed format: ${format satisfies never}`);
     }
     return { status: "success" };
   } catch (err: any) {
