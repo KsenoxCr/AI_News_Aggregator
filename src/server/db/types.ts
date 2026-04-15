@@ -27,15 +27,19 @@ export type Source = Pick<
   "id" | "slug" | "url" | "date_filter_param" | "date_format" | "previous_etag"
 >;
 
-export type Classified = z.infer<typeof ClassificationSchema>;
+export type Classified = z.infer<typeof ClassificationSchema>["classifications"];
 
-export type DigestsIntermediary = z.infer<typeof DigestsIntermediarySchema>;
+export type DigestsIntermediary = z.infer<typeof DigestsIntermediarySchema>["routings"];
 
 export type PrevDigestHeader = { id: string; title: string };
 
 export type PrevDigest = PrevDigestHeader & {
   digest: string;
   revision: number;
+};
+
+export type PrevDigestWithCategories = PrevDigest & {
+  categories: string[];
 };
 
 export type DigestRequest = {
