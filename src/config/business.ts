@@ -1,4 +1,4 @@
-import { KeysRecord } from "~/lib/utils";
+// TODO: All fields to UPPERCASE
 
 export const BRAND = {
   appName: "AI News",
@@ -40,16 +40,26 @@ export const MAX = {
   timeframe: 30 * 24 * 60 * 60 * 1000, // 30 days
 } as const;
 
-const _AGENT_ENDPOINTS = {
-  OpenAI: "https://api.openai.com/v1/chat/completions",
-  Anthropic: "https://api.anthropic.com/v1/messages",
-} as const;
-
 export const AGENT = {
-  ENDPOINTS: _AGENT_ENDPOINTS,
-  PROVIDERS: KeysRecord(_AGENT_ENDPOINTS),
-  RATE_LIMITS: {
-    freeTier: {},
+  OpenAI: {
+    endpoint: "https://api.openai.com/v1/chat/completions",
+    supported_models: [
+      "gpt-5",
+      "gpt-5.4-mini",
+      "gpt-4o",
+      "gpt-4o-mini",
+      "o1",
+      "o3",
+      "o3-mini",
+    ],
+  },
+  Anthropic: {
+    endpoint: "https://api.anthropic.com/v1/messages",
+    supported_models: [
+      "claude-3-haiku-20240307",
+      "claude-sonnet-4-20250514",
+      "claude-opus-4-20250514",
+    ],
   },
 } as const;
 
@@ -66,9 +76,7 @@ export const DEFAULT = {
   ],
 } as const;
 
-export const AGENT_PROVIDERS = Object.values(AGENT.PROVIDERS);
-
+export type AgentProvider = keyof typeof AGENT;
+export const AGENT_PROVIDERS = Object.keys(AGENT) as AgentProvider[];
 export type FeedFormat = (typeof FEED_FORMAT)[keyof typeof FEED_FORMAT];
-export type AgentProvider = (typeof AGENT_PROVIDERS)[number];
-export type AgentEndpoint =
-  (typeof AGENT.ENDPOINTS)[keyof typeof AGENT.ENDPOINTS];
+export type AgentEndpoint = (typeof AGENT)[AgentProvider]["endpoint"];
