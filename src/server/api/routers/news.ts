@@ -600,6 +600,7 @@ export const newsRouter = createTRPCRouter({
           digest: digest.digest,
           article: digest.article_id,
           categories: prevCategoriesMap.get(digest.id) ?? [],
+          updated_at: digest.updated_at,
         }));
 
       if (cachedToYield.length > 0)
@@ -935,6 +936,7 @@ export const newsRouter = createTRPCRouter({
             digest: result.data.digest,
             article: result.item.article,
             categories,
+            updated_at: new Date(),
           },
         };
 
