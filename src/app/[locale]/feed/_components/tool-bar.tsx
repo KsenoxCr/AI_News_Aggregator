@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { CalendarIcon } from "lucide-react";
+import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
+import { BookOpen, CalendarIcon } from "lucide-react";
 import { useLocale } from "next-intl";
 import { type Locale } from "~/lib/i18n/routing";
 import { slugToLabel, formatLocaleDate } from "~/lib/utils/ui";
@@ -14,9 +14,7 @@ import {
   PopoverTrigger,
 } from "~/components/ui/popover";
 import { cn } from "~/lib/utils";
-import { MAX } from "~/config/business";
-
-type Category = { slug: string; active: boolean };
+import { FEED, MAX } from "~/config/business";
 
 function DatePicker({
   calendarDate,
@@ -64,12 +62,82 @@ function DatePicker({
   );
 }
 
+function Dropdown({
+  pageSize,
+  setPageSize,
+  close,
+}: {
+  pageSize: number;
+  setPageSize: Dispatch<SetStateAction<number>>;
+  close: () => void;
+}) {
+  const options = FEED.paging.filter((n) => n !== pageSize);
+  return (
+    <div className="border-border bg-background absolute top-full right-0 z-50 overflow-hidden rounded-b-lg border border-t-0 shadow-md">
+      {options.map((n, i) => (
+        <button
+          key={n}
+          onClick={() => {
+            setPageSize(n);
+            close();
+          }}
+          className={cn(
+            "text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-2 px-3 py-1.5 text-xs font-medium transition-colors",
+            i < options.length - 1 && "border-border border-b",
+          )}
+        >
+          {n}
+          <BookOpen className="invisible size-4" />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PageSizePicker({
+  pageSize,
+  setPageSize,
+}: {
+  pageSize: number;
+  setPageSize: Dispatch<SetStateAction<number>>;
+}) {
+  const [showDropdown, setShowDropdown] = useState(false);
+  return (
+    <div className="relative shrink-0">
+      <Button
+        variant="outline"
+        size="sm"
+        className={cn("gap-2", showDropdown && "rounded-b-none")}
+        onClick={() => setShowDropdown((v) => !v)}
+      >
+        {pageSize}
+        <BookOpen className="size-4" />
+      </Button>
+      {showDropdown && (
+        <Dropdown
+          pageSize={pageSize}
+          setPageSize={setPageSize}
+          close={() => setShowDropdown(false)}
+        />
+      )}
+    </div>
+  );
+}
+
 export function ToolBar({
   categories,
+  activeCategories,
+  setActiveCategories,
+  pageSize,
+  setPageSize,
   calendarDate,
   setCalendarDate,
 }: {
-  categories: Category[];
+  categories: Set<string>;
+  activeCategories: Set<string>;
+  setActiveCategories: Dispatch<SetStateAction<Set<string>>>;
+  pageSize: number;
+  setPageSize: Dispatch<SetStateAction<number>>;
   calendarDate: Date | undefined;
   setCalendarDate: (d: Date | undefined) => void;
 }) {
@@ -77,18 +145,24 @@ export function ToolBar({
     <div className="border-border bg-background/80 sticky top-0 z-10 border-b px-4 py-3 backdrop-blur-sm md:sticky md:top-14.25 md:px-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex gap-2 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
-          {categories.length ? (
-            categories.map((cat) => (
+          {categories.size ? (
+            [...categories].map((slug) => (
               <button
-                key={cat.slug}
+                key={slug}
+                onClick={() => {
+                  const next = new Set(activeCategories);
+                  if (next.has(slug)) next.delete(slug);
+                  else next.add(slug);
+                  setActiveCategories(next);
+                }}
                 className={cn(
                   "shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                  cat.active
+                  activeCategories.has(slug)
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground hover:bg-muted/80",
                 )}
               >
-                {slugToLabel(cat.slug)}
+                {slugToLabel(slug)}
               </button>
             ))
           ) : (
@@ -97,7 +171,13 @@ export function ToolBar({
             </div>
           )}
         </div>
-        <DatePicker calendarDate={calendarDate} setCalendarDate={setCalendarDate} />
+        <div className="flex shrink-0 gap-2">
+          <PageSizePicker pageSize={pageSize} setPageSize={setPageSize} />
+          <DatePicker
+            calendarDate={calendarDate}
+            setCalendarDate={setCalendarDate}
+          />
+        </div>
       </div>
     </div>
   );
