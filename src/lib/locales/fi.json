@@ -65,10 +65,14 @@
       "add": "Lisää",
       "models": "Mallit",
       "waitingForKey": "Odotetaan API-avainta...",
+      "noModelsAvailable": "Malleja ei saatavilla",
       "remove": "Poista",
       "enable": "Ota käyttöön",
       "disable": "Poista käytöstä",
-      "modelRequired": "Valitse malli ennen käyttöönottoa"
+      "modelRequired": "Valitse malli ennen käyttöönottoa",
+      "infoTitle": "Tietoa tekoälymalleista",
+      "infoBody": "Käytetään artikkeleiden luokitteluun aiheen mukaan ja tiivistelmien luomiseen. Vaatii API-avaimen valitsemaltasi palveluntarjoajalta — tallennetaan salattuna, ei koskaan jaeta.",
+      "infoGetApiKey": "Hanki API-avain"
     },
     "preferences": {
       "title": "Mieltymykset",

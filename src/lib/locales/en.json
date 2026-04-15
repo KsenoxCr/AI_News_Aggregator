@@ -66,10 +66,14 @@
       "add": "Add",
       "models": "Models",
       "waitingForKey": "Waiting for API key...",
+      "noModelsAvailable": "No models available",
       "remove": "Remove",
       "enable": "Enable",
       "disable": "Disable",
-      "modelRequired": "Select a model before enabling"
+      "modelRequired": "Select a model before enabling",
+      "infoTitle": "About AI models",
+      "infoBody": "Used to classify articles by topic and generate digest summaries. Requires an API key from your chosen provider — stored encrypted and never shared.",
+      "infoGetApiKey": "Get API key"
     },
     "preferences": {
       "title": "Preferences",
