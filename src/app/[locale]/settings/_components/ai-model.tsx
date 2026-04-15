@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { CircleHelp, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "~/components/ui/button";
+import { Spinner } from "~/components/ui/spinner";
 import { Input } from "~/components/ui/input";
 import {
   Popover,
@@ -13,11 +15,76 @@ import {
 import { Typography } from "../../_components/typography";
 import { ProviderButton } from "./provider";
 import { cn } from "~/lib/utils";
-import { AGENT_PROVIDERS, type AgentProvider } from "~/config/business";
+import { AGENT, AGENT_PROVIDERS, type AgentProvider } from "~/config/business";
 import { AddAPIKeySchemaFactory } from "~/lib/validators/settings";
 import { api } from "~/trpc/react";
 
 const TOAST_POS = { position: "top-center" } as const;
+
+function InfoPopover({ t }: { t: ReturnType<typeof useTranslations> }) {
+  const [open, setOpen] = useState(false);
+  const isFinePointer = () => window.matchMedia("(pointer: fine)").matches;
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className="text-muted-foreground hover:text-foreground transition-colors"
+          onMouseEnter={() => {
+            if (isFinePointer()) setOpen(true);
+          }}
+          onMouseLeave={() => {
+            if (isFinePointer()) setOpen(false);
+          }}
+          onClick={() => {
+            if (!isFinePointer()) setOpen((o) => !o);
+          }}
+        >
+          <CircleHelp className="size-4" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-72 space-y-3 text-sm"
+        align="end"
+        onMouseEnter={() => {
+          if (isFinePointer()) setOpen(true);
+        }}
+        onMouseLeave={() => {
+          if (isFinePointer()) setOpen(false);
+        }}
+      >
+        <p className="text-foreground font-medium">
+          {t("settings.aiModel.infoTitle")}
+        </p>
+        <p className="text-muted-foreground">
+          {t("settings.aiModel.infoBody")}
+        </p>
+        <div className="space-y-2">
+          {[
+            { name: "OpenAI", href: "https://platform.openai.com/api-keys" },
+            {
+              name: "Anthropic",
+              href: "https://console.anthropic.com/account/keys",
+            },
+          ].map(({ name, href }) => (
+            <div key={name}>
+              <p className="text-foreground text-xs font-semibold">{name}</p>
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground mt-1 inline-flex items-center gap-1 text-xs transition-colors"
+              >
+                {t("settings.aiModel.infoGetApiKey")}
+                <ExternalLink className="size-3" />
+              </a>
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export interface AgentState {
   id: string | null;
@@ -75,6 +142,56 @@ export function AIModelSettings({
     }
   };
 
+  const showModels = (
+    agent: AgentState | undefined,
+    provider: AgentProvider,
+  ) => {
+    if (!agent) return <Spinner className="size-4" />;
+
+    const models = agent.models.filter((m) =>
+      (AGENT[provider].supported_models as readonly string[]).includes(m),
+    );
+    if (!models.length)
+      return (
+        <Typography variant="body-sm" className="text-muted-foreground">
+          {t("settings.aiModel.noModelsAvailable")}
+        </Typography>
+      );
+
+    const ordered = agent.model
+      ? [agent.model, ...models.filter((m) => m !== agent.model)]
+      : models;
+
+    return (
+      <div className="flex flex-col gap-1">
+        {ordered.map((model) => (
+          <Typography
+            key={model}
+            as="button"
+            variant="body-sm"
+            onClick={() => {
+              setAgents((prev) =>
+                prev.map((a) =>
+                  a.provider === provider
+                    ? { ...a, model: a.model === model ? "" : model }
+                    : a,
+                ),
+              );
+            }}
+            className={cn(
+              "rounded px-2 py-1 text-left transition-colors",
+              agent.model === model
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted",
+            )}
+          >
+            {model.replace(/-\d{8}$/, "")}
+          </Typography>
+        ))}
+      </div>
+    );
+  };
+
   const validateAPIKeyMutation = api.settings.validateAPIKey.useMutation({
     onError: (err) => toast.error(err.message, TOAST_POS),
   });
@@ -114,9 +231,12 @@ export function AIModelSettings({
 
   return (
     <section className="border-border bg-card rounded-xl border p-5">
-      <Typography as="h2" variant="heading-2" className="mb-4">
-        {t("settings.aiModel.title")}
-      </Typography>
+      <div className="mb-4 flex items-center gap-3">
+        <Typography as="h2" variant="heading-2">
+          {t("settings.aiModel.title")}
+        </Typography>
+        <InfoPopover t={t} />
+      </div>
       <div className="-ml-1 flex gap-1">
         {AGENT_PROVIDERS.map((provider) => {
           const agent = agents.find((a) => a.provider === provider);
@@ -187,6 +307,7 @@ export function AIModelSettings({
                   >
                     {/* TODO: Swap with spinner during handleAPI resolution*/}
                     {/* TODO: Confirmation w/warning for removal*/}
+                    {/* FIX: after removal, "waiting for api key", not spinner like now */}
                     {agent
                       ? t("settings.aiModel.remove")
                       : t("settings.aiModel.add")}
@@ -200,50 +321,7 @@ export function AIModelSettings({
                   {t("settings.aiModel.models")}
                 </Typography>
                 <div className="overflow-y-auto">
-                  {!agent?.models.length ? (
-                    <Typography
-                      variant="body-sm"
-                      className="text-muted-foreground"
-                    >
-                      {t("settings.aiModel.waitingForKey")}
-                    </Typography>
-                  ) : (
-                    <div className="flex flex-col gap-1">
-                      {(agent.model
-                        ? [
-                            agent.model,
-                            ...agent.models.filter((m) => m !== agent.model),
-                          ]
-                        : agent.models
-                      ).map((model) => (
-                        <Typography
-                          key={model}
-                          as="button"
-                          variant="body-sm"
-                          onClick={() => {
-                            setAgents((prev) =>
-                              prev.map((a) =>
-                                a.provider === provider
-                                  ? {
-                                      ...a,
-                                      model: a.model === model ? "" : model,
-                                    }
-                                  : a,
-                              ),
-                            );
-                          }}
-                          className={cn(
-                            "rounded px-2 py-1 text-left transition-colors",
-                            agent?.model === model
-                              ? "bg-primary text-primary-foreground"
-                              : "text-muted-foreground hover:bg-muted",
-                          )}
-                        >
-                          {model}
-                        </Typography>
-                      ))}
-                    </div>
-                  )}
+                  {showModels(agent, provider)}
                 </div>
               </PopoverContent>
             </Popover>
