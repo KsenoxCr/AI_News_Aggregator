@@ -1,6 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import type { ZodType } from "zod";
+import { zodResponseFormat } from "openai/helpers/zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
 import { AGENT, type AgentEndpoint } from "~/config/business";
 
 type EndpointType = "oai" | "anthropic";
@@ -132,6 +134,8 @@ async function sendWithRetry<T>(
     const res = await fetch(input);
     if (res.status === "failure") continue;
 
+    console.log(res.response.content);
+
     let parsed;
     try {
       parsed = outputSchema.safeParse(JSON.parse(res.response.content));
@@ -173,7 +177,7 @@ function ParseAnthropicReset(s: string | null): number {
 }
 
 export const OAIAdapter: AgentAdapter = {
-  endpoint: AGENT.ENDPOINTS.OpenAI as AgentEndpoint,
+  endpoint: AGENT.OpenAI.endpoint,
   _model: "",
   _apiKey: "",
   get model() {
@@ -183,9 +187,6 @@ export const OAIAdapter: AgentAdapter = {
     return this._apiKey;
   },
   rateLimits: null as RateLimits | null,
-
-  // TODO: Return only T2T models
-  // TODO: response format coercion (if substansial coherence buff)
 
   async validateAPIKey(apiKey: string): Promise<ValidateAPIKeyResult> {
     try {
@@ -222,7 +223,11 @@ export const OAIAdapter: AgentAdapter = {
       const client = new OpenAI({ apiKey: this.apiKey });
       const oaiInput = i as OAIInput;
       const { data: res, response } = await client.chat.completions
-        .create({ model: oaiInput.model, messages: oaiInput.messages })
+        .create({
+          model: oaiInput.model,
+          messages: oaiInput.messages,
+          response_format: zodResponseFormat(outputSchema, "response"),
+        })
         .withResponse();
       const content = res.choices[0]?.message.content;
       if (!content) {
@@ -259,7 +264,7 @@ export const OAIAdapter: AgentAdapter = {
 };
 
 export const AnthropicAdapter: AgentAdapter = {
-  endpoint: AGENT.ENDPOINTS.Anthropic as AgentEndpoint,
+  endpoint: AGENT.Anthropic.endpoint,
   _model: "",
   _apiKey: "",
   get model() {
@@ -307,16 +312,30 @@ export const AnthropicAdapter: AgentAdapter = {
     const fetch = async (i: AgentInput): Promise<ParseResponseResult> => {
       const client = new Anthropic({ apiKey: this.apiKey });
       const anthropicInput = i as AnthropicInput;
+
       const { data: res, response } = await client.messages
         .create({
           model: anthropicInput.model,
           messages: anthropicInput.messages,
           max_tokens: anthropicInput.max_tokens,
           ...(anthropicInput.system && { system: anthropicInput.system }),
+          tools: [
+            {
+              name: "response",
+              description: "Structured output",
+              input_schema: {
+                type: "object",
+                properties: { result: zodToJsonSchema(outputSchema) },
+                required: ["result"],
+              } as Anthropic.Tool["input_schema"],
+            },
+          ],
+          tool_choice: { type: "tool", name: "response" },
         })
         .withResponse();
-      const block = res.content[0];
-      if (!block || block.type !== "text") {
+
+      const block = res.content.find((b) => b.type === "tool_use");
+      if (!block || block.type !== "tool_use") {
         return {
           status: "failure",
           error: {
@@ -351,7 +370,7 @@ export const AnthropicAdapter: AgentAdapter = {
         status: "success",
         response: {
           endpointType: "anthropic",
-          content: block.text,
+          content: JSON.stringify((block.input as { result: unknown }).result),
           usage: {
             input_tokens: res.usage.input_tokens,
             output_tokens: res.usage.output_tokens,
