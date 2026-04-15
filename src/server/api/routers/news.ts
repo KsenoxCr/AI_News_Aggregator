@@ -378,14 +378,14 @@ async function RouteArticlesToDigests(
     }),
   );
 
-  console.log(
-    `[RouteArticlesToDigests] input articles (${stripped.length}):`,
-    JSON.stringify(stripped, null, 2),
-  );
-  console.log(
-    `[RouteArticlesToDigests] prevDigests (${prevDigests.length}):`,
-    JSON.stringify(prevDigests, null, 2),
-  );
+  // console.log(
+  //   `[RouteArticlesToDigests] input articles (${stripped.length}):`,
+  //   JSON.stringify(stripped, null, 2),
+  // );
+  // console.log(
+  //   `[RouteArticlesToDigests] prevDigests (${prevDigests.length}):`,
+  //   JSON.stringify(prevDigests, null, 2),
+  // );
 
   const input = AgentInputFactory(
     agentAdapter,
@@ -397,8 +397,8 @@ async function RouteArticlesToDigests(
     DIGEST_ROUTING.systemPrompt,
   );
 
-  console.log("####################");
-  console.log(input);
+  // console.log("####################");
+  // console.log(input);
 
   const result = await agentAdapter.sendRequest(input, outputSchema);
 
@@ -416,10 +416,10 @@ async function RouteArticlesToDigests(
     `[RouteArticlesToDigests] LLM output must be a JSON array, got: ${typeof routed}`,
   );
 
-  console.log(
-    `[RouteArticlesToDigests] ${routed.length} routings out of ${articles.length} input articles:`,
-    JSON.stringify(routed, null, 2),
-  );
+  // console.log(
+  //   `[RouteArticlesToDigests] ${routed.length} routings out of ${articles.length} input articles:`,
+  //   JSON.stringify(routed, null, 2),
+  // );
 
   return { status: "success", routed };
 }
@@ -526,7 +526,12 @@ async function* GenerateDigests(
 export const newsRouter = createTRPCRouter({
   generateFeed: protectedTranslatedProcedure
     .input(z.date())
-    .subscription(async function* ({ input, ctx }) {
+    .subscription(async function* ({ input: rawInput, ctx }) {
+      const input = new Date(rawInput);
+      input.setUTCHours(0, 0, 0, 0);
+
+      console.log(input);
+
       console.log("[generateFeed] phase 0: start");
 
       const cachedDigests = (await db
@@ -554,7 +559,10 @@ export const newsRouter = createTRPCRouter({
           "digest_revisions.digest",
           "digest_revisions.revision",
         ])
-        .execute()) as (PrevDigest & { updated_at: Date })[];
+        .execute()) as (PrevDigest & {
+        article_id: string;
+        updated_at: Date;
+      })[];
 
       const prevDigestCategoryRows = cachedDigests.length
         ? await db
@@ -579,17 +587,23 @@ export const newsRouter = createTRPCRouter({
         `[generateFeed] phase 1: cached digests found: ${cachedDigests.length}`,
       );
 
-      for (const digest of cachedDigests.filter((d) => d.updated_at >= input)) {
-        yield {
-          status: "success" as const,
-          digestRevision: {
-            title: digest.title,
-            digest: digest.digest,
-            article: null,
-            categories: prevCategoriesMap.get(digest.id) ?? [],
-          },
-        };
-      }
+      const cachedToYield = cachedDigests
+        .filter((d) => {
+          const pass = d.updated_at >= input;
+          console.log(
+            `[cachedDigests filter] updated_at=${d.updated_at.toISOString()} input=${input.toISOString()} pass=${pass}`,
+          );
+          return pass;
+        })
+        .map((digest) => ({
+          title: digest.title,
+          digest: digest.digest,
+          article: digest.article_id,
+          categories: prevCategoriesMap.get(digest.id) ?? [],
+        }));
+
+      if (cachedToYield.length > 0)
+        yield { status: "success" as const, digestRevisions: cachedToYield };
 
       console.log("[generateFeed] phase 2: fetching sources");
 
@@ -746,6 +760,7 @@ export const newsRouter = createTRPCRouter({
           await db
             .insertInto("cached_articles")
             .values(StripCategories(cacheMisses!))
+            .ignore()
             .execute();
 
         console.log(
