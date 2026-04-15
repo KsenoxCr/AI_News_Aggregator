@@ -33,6 +33,10 @@ export const DATE_FORMAT = {
 
 export type DateFormat = (typeof DATE_FORMAT)[keyof typeof DATE_FORMAT];
 
+export const FEED = {
+  paging: [10, 20, 50] as const,
+} as const;
+
 export const MAX = {
   sources: 10,
   categories: 10,
