@@ -7,8 +7,6 @@ import {
   type AgentInput,
 } from "../adapters/agent";
 
-// TODO: API key storage & retrieval need crypt with .env MK
-
 export async function AgentAdapterFactory(
   provider: AgentProvider,
   apiKey: string,
@@ -23,10 +21,10 @@ export async function AgentAdapterFactory(
 > {
   let adapter: AgentAdapter;
   switch (provider) {
-    case AGENT.PROVIDERS.OpenAI:
+    case "OpenAI":
       adapter = OAIAdapter;
       break;
-    case AGENT.PROVIDERS.Anthropic:
+    case "Anthropic":
       adapter = AnthropicAdapter;
       break;
     default:
@@ -47,7 +45,7 @@ export function AgentInputFactory(
 
   const { endpoint, model } = adapter;
   switch (endpoint) {
-    case AGENT.ENDPOINTS.OpenAI:
+    case AGENT.OpenAI.endpoint:
       return {
         endpoint,
         model,
@@ -67,7 +65,7 @@ export function AgentInputFactory(
         //     }
         //   : undefined,
       };
-    case AGENT.ENDPOINTS.Anthropic:
+    case AGENT.Anthropic.endpoint:
       return {
         endpoint,
         model,
