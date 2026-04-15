@@ -54,7 +54,7 @@ export default async function LocaleLayout({
               <Toaster />
             </ThemeProvider>
           </NextIntlClientProvider>
-          <ReactQueryDevtools initialIsOpen={false} />
+          {/* <ReactQueryDevtools initialIsOpen={false} /> */}
         </TRPCReactProvider>
       </body>
     </html>
