@@ -79,7 +79,8 @@ async function NormalizeFeed(xmlFeed: string, source: Source) {
   const NAMESPACE = uuidv5.URL;
 
   rawFeed.items.forEach((item) => {
-    const id = uuidv5(`${item.guid}:${source.id}`, NAMESPACE);
+    const nonce = item.guid ?? `${item.title}:${item.link}`;
+    const id = uuidv5(`${nonce}:${source.id}`, NAMESPACE);
 
     // TODO: Placeholder date incase pubDate missing
 
@@ -160,21 +161,11 @@ async function ClassifyArticles(
     await db.selectFrom("user_categories").select("category").execute()
   ).map((uc) => uc.category);
 
-  // TODO: responseFormat logic for models with builtin schema coherence
-
-  // const responseFormat = isOAIAdapter(agentAdapter)
-  //   ? `
-  //
-  // `
-  //   : null;
-
   const input = AgentInputFactory(
     agentAdapter,
     CLASSIFICATION.prompt(serializedArticles, categories, schemaString),
     CLASSIFICATION.systemPrompt,
   );
-
-  // TODO: Maybe use zod schema for validation and on schema mismatch, append the error to the next attempts prompt so the model apprehends which fields mismatched
 
   const result = await agentAdapter.sendRequest(input, outputSchema);
 
@@ -184,7 +175,7 @@ async function ClassifyArticles(
       error: { ...result.error, message: translator(result.error.message) },
     };
 
-  const classified = result.data;
+  const classified = result.data.classifications;
 
   assert(
     Array.isArray(classified),
@@ -376,23 +367,49 @@ async function RouteArticlesToDigests(
   const outputSchema = DigestsIntermediarySchema;
   const schemaString = JSON.stringify(zodToJsonSchema(outputSchema));
 
-  // TODO: Strip down articles by omitting fields: source_id, used + id as article_id
+  const stripped = articles.map(
+    ({ id, title, link, author, published_at, categories }) => ({
+      article_id: id,
+      title,
+      link,
+      author,
+      published_at,
+      categories,
+    }),
+  );
+
+  console.log(
+    `[RouteArticlesToDigests] input articles (${stripped.length}):`,
+    JSON.stringify(stripped, null, 2),
+  );
+  console.log(
+    `[RouteArticlesToDigests] prevDigests (${prevDigests.length}):`,
+    JSON.stringify(prevDigests, null, 2),
+  );
 
   const input = AgentInputFactory(
     agentAdapter,
     DIGEST_ROUTING.prompt(
-      JSON.stringify(articles),
+      JSON.stringify(stripped),
       JSON.stringify(prevDigests),
       schemaString,
     ),
     DIGEST_ROUTING.systemPrompt,
   );
 
+  console.log("####################");
+  console.log(input);
+
   const result = await agentAdapter.sendRequest(input, outputSchema);
+
+  // console.log(
+  //   `[RouteArticlesToDigests] raw result:`,
+  //   JSON.stringify(result, null, 2),
+  // );
 
   if (result.status === "failure") return result;
 
-  const routed = result.data;
+  const routed = result.data.routings;
 
   assert(
     Array.isArray(routed),
@@ -400,7 +417,8 @@ async function RouteArticlesToDigests(
   );
 
   console.log(
-    `[RouteArticlesToDigests] ${routed.length} articles routed out of ${articles.length} input articles`,
+    `[RouteArticlesToDigests] ${routed.length} routings out of ${articles.length} input articles:`,
+    JSON.stringify(routed, null, 2),
   );
 
   return { status: "success", routed };
@@ -453,7 +471,12 @@ async function* GenerateDigests(
     .select(({ fn }) => fn.max("input_tokens").as("max_input_tokens"))
     .executeTakeFirst();
 
-  const maxInputTokens = maxRow?.max_input_tokens ?? DIGEST.bootstrapMaxTokens;
+  const maxRowInputTokens = maxRow?.max_input_tokens;
+
+  const maxInputTokens =
+    maxRowInputTokens && maxRowInputTokens > 0
+      ? maxRowInputTokens
+      : DIGEST.bootstrapMaxTokens;
 
   console.log(`[GenerateDigests] maxInputTokens: ${maxInputTokens}`);
 
@@ -462,6 +485,9 @@ async function* GenerateDigests(
   );
 
   const articlesMap = new Map(articles.map((a) => [a.id, a]));
+
+  // console.log("############################");
+  // console.log(routingResult.routed);
 
   const routed: DigestRequest[] = routingResult.routed.flatMap((entry) => {
     const article = articlesMap.get(entry.article_id);
@@ -503,10 +529,9 @@ export const newsRouter = createTRPCRouter({
     .subscription(async function* ({ input, ctx }) {
       console.log("[generateFeed] phase 0: start");
 
-      const cached_digests = await db
+      const cachedDigests = (await db
         .selectFrom("news_digests")
         .where("news_digests.user_id", "=", ctx.session.user.id)
-        .where("news_digests.updated_at", ">=", input)
         .innerJoin(
           "digest_revisions",
           "digest_revisions.digest_id",
@@ -521,15 +546,49 @@ export const newsRouter = createTRPCRouter({
               .whereRef("dr_max.digest_id", "=", "news_digests.id"),
           ),
         )
-        .selectAll()
-        .execute();
+        .select([
+          "news_digests.id",
+          "news_digests.updated_at",
+          "digest_revisions.article_id",
+          "digest_revisions.title",
+          "digest_revisions.digest",
+          "digest_revisions.revision",
+        ])
+        .execute()) as (PrevDigest & { updated_at: Date })[];
+
+      const prevDigestCategoryRows = cachedDigests.length
+        ? await db
+            .selectFrom("digest_categories")
+            .where(
+              "digest_id",
+              "in",
+              cachedDigests.map((d) => d.id),
+            )
+            .select(["digest_id", "category"])
+            .execute()
+        : [];
+
+      const prevCategoriesMap = new Map<string, string[]>();
+      for (const row of prevDigestCategoryRows) {
+        const bucket = prevCategoriesMap.get(row.digest_id) ?? [];
+        bucket.push(row.category);
+        prevCategoriesMap.set(row.digest_id, bucket);
+      }
 
       console.log(
-        `[generateFeed] phase 1: cached digests found: ${cached_digests.length}`,
+        `[generateFeed] phase 1: cached digests found: ${cachedDigests.length}`,
       );
 
-      for (const digest of cached_digests) {
-        yield { status: "success", type: "cached", article: digest };
+      for (const digest of cachedDigests.filter((d) => d.updated_at >= input)) {
+        yield {
+          status: "success" as const,
+          digestRevision: {
+            title: digest.title,
+            digest: digest.digest,
+            article: null,
+            categories: prevCategoriesMap.get(digest.id) ?? [],
+          },
+        };
       }
 
       console.log("[generateFeed] phase 2: fetching sources");
@@ -731,6 +790,9 @@ export const newsRouter = createTRPCRouter({
         info: ctx.t("success.feed.classifyingArticles"),
       };
 
+      // console.log("---------- unclassified ----------");
+      // console.log(unclassified);
+
       const result = await ClassifyArticles(agentAdapter, ctx.t, unclassified);
 
       if (result.status === "failure") {
@@ -744,15 +806,9 @@ export const newsRouter = createTRPCRouter({
         `[generateFeed] phase 11: classification succeeded — ${result.classified.length} articles classified`,
       );
 
-      if (result.classified.length > 0) {
-        const categories = result.classified.flatMap(
-          (article) =>
-            article.categories?.map((category) => ({
-              article_id: article.article_id,
-              category,
-            })) ?? [],
-        );
+      // TODO: if classified.length = 0 -> early exit, no articles to generate digests from
 
+      if (result.classified.length > 0) {
         unclassified.forEach((article) => {
           const classifiedArticle = result.classified.find(
             (a) => a.article_id === article.id,
@@ -764,6 +820,17 @@ export const newsRouter = createTRPCRouter({
             });
           }
         });
+
+        // console.log("---------- classified ----------");
+        // console.log(classified);
+
+        const categories = result.classified.flatMap(
+          (article) =>
+            article.categories?.map((category) => ({
+              article_id: article.article_id,
+              category,
+            })) ?? [],
+        );
 
         const expectedCategoryCount = result.classified.reduce(
           (sum, a) => sum + (a.categories?.length ?? 0),
@@ -795,33 +862,8 @@ export const newsRouter = createTRPCRouter({
         console.log("[generateFeed] phase 13: done — all DB writes complete");
       }
 
-      const prevDigests = (await db
-        .selectFrom("news_digests")
-        .where("news_digests.user_id", "=", ctx.session.user.id)
-        .innerJoin(
-          "digest_revisions",
-          "digest_revisions.digest_id",
-          "news_digests.id",
-        )
-        .where(({ eb, selectFrom }) =>
-          eb(
-            "digest_revisions.revision",
-            "=",
-            selectFrom("digest_revisions as dr_max")
-              .select(({ fn }) => fn.max("dr_max.revision").as("max_rev"))
-              .whereRef("dr_max.digest_id", "=", "news_digests.id"),
-          ),
-        )
-        .select([
-          "news_digests.id",
-          "digest_revisions.title",
-          "digest_revisions.digest",
-          "digest_revisions.revision",
-        ])
-        .execute()) as PrevDigest[];
-
       console.log(
-        `[generateFeed] phase 14: retrieved ${prevDigests.length} existing digest headers`,
+        `[generateFeed] phase 14: using ${cachedDigests.length} existing digest headers`,
       );
 
       type NewDigest = {
@@ -860,26 +902,28 @@ export const newsRouter = createTRPCRouter({
         agentAdapter,
         ctx.t,
         classified,
-        prevDigests,
+        cachedDigests,
       )) {
         if (result.status === "failure") return yield result;
 
-        // TODO: yield array of articles from all digest revisions of the aggregate
+        const { item, data, meta } = result;
+        const isNew = item.digest === "new";
+        const digestId = isNew ? randomUUID() : (item.digest as PrevDigest).id;
+        const categories = isNew
+          ? (item.article.categories ?? [])
+          : (prevCategoriesMap.get(digestId) ?? []);
 
         yield {
           status: result.status,
           digestRevision: {
             title: result.data.title,
             digest: result.data.digest,
-            article_id: result.data.article_id,
+            article: result.item.article,
+            categories,
           },
         };
 
         console.log(`digest #${count} out of ${classified.length} yielded`);
-
-        const { item, data, meta } = result;
-        const isNew = item.digest === "new";
-        const digestId = isNew ? randomUUID() : (item.digest as PrevDigest).id;
         const revisionNumber = isNew
           ? 1
           : (item.digest as PrevDigest).revision + 1;
@@ -979,5 +1023,5 @@ export const newsRouter = createTRPCRouter({
 
       return yield { status: "success" };
     }),
-  // viewDigest: protectedProcedure
+  // getRevisions: protectedProcedure // TODO: returns all revisions of digest aggregate
 });
