@@ -9,33 +9,9 @@ import {
 } from "~/components/ui/popover";
 import { Spinner } from "~/components/ui/spinner";
 import { Typography } from "../../_components/typography";
-import { cn } from "~/lib/utils";
+import { CategoryChip } from "../../_components/category-chip";
 import { MAX } from "~/config/business";
 import type { RouterOutputs } from "~/trpc/react";
-
-function CategoryChip({
-  label,
-  active,
-  onClick,
-}: {
-  label: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-        active
-          ? "bg-primary text-primary-foreground"
-          : "bg-muted text-muted-foreground hover:bg-muted/80",
-      )}
-    >
-      {label}
-    </button>
-  );
-}
 
 interface Props {
   dbSettings: RouterOutputs["settings"]["load"] | undefined;

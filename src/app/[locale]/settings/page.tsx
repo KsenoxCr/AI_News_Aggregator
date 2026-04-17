@@ -24,8 +24,6 @@ import { api } from "~/trpc/react";
 
 const TOAST_POS = { position: "top-center" } as const;
 
-// TODO: instructions popup "?" to providers API key guide
-
 export default function SettingsPage() {
   const t = useTranslations();
   const router = useRouter();
