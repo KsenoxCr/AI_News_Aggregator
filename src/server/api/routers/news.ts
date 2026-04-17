@@ -526,7 +526,7 @@ async function* GenerateDigests(
 export const newsRouter = createTRPCRouter({
   generateFeed: protectedTranslatedProcedure
     .input(z.date())
-    .subscription(async function* ({ input: rawInput, ctx }) {
+    .subscription(async function* ({ input: rawInput, ctx, signal }) {
       const input = new Date(rawInput);
       input.setUTCHours(0, 0, 0, 0);
 
@@ -598,7 +598,8 @@ export const newsRouter = createTRPCRouter({
         .map((digest) => ({
           title: digest.title,
           digest: digest.digest,
-          article: digest.article_id,
+          article_id: digest.article_id,
+          digest_id: digest.id,
           categories: prevCategoriesMap.get(digest.id) ?? [],
           updated_at: digest.updated_at,
         }));
@@ -606,6 +607,7 @@ export const newsRouter = createTRPCRouter({
       if (cachedToYield.length > 0)
         yield { status: "success" as const, digestRevisions: cachedToYield };
 
+      if (signal?.aborted) return;
       console.log("[generateFeed] phase 2: fetching sources");
 
       const sources = (await db
@@ -646,6 +648,7 @@ export const newsRouter = createTRPCRouter({
       };
 
       for (const source of sources) {
+        if (signal?.aborted) return;
         const fetchResult = await FetchFeed(source, input);
 
         if (!fetchResult) continue;
@@ -801,6 +804,7 @@ export const newsRouter = createTRPCRouter({
       }
       const agentAdapter = configured.adapter;
 
+      if (signal?.aborted) return;
       yield {
         status: "success" as const,
         info: ctx.t("success.feed.classifyingArticles"),
@@ -920,6 +924,7 @@ export const newsRouter = createTRPCRouter({
         classified,
         cachedDigests,
       )) {
+        if (signal?.aborted) return;
         if (result.status === "failure") return yield result;
 
         const { item, data, meta } = result;
@@ -934,7 +939,8 @@ export const newsRouter = createTRPCRouter({
           digestRevision: {
             title: result.data.title,
             digest: result.data.digest,
-            article: result.item.article,
+            article_id: result.item.article.id,
+            digest_id: digestId,
             categories,
             updated_at: new Date(),
           },
@@ -1040,5 +1046,46 @@ export const newsRouter = createTRPCRouter({
 
       return yield { status: "success" };
     }),
-  // getRevisions: protectedProcedure // TODO: returns all revisions of digest aggregate
+  getRevisions: protectedTranslatedProcedure
+    .input(z.string())
+    .query(async ({ input: digestId }) => {
+      const rows = await db
+        .selectFrom("digest_revisions")
+        .where("digest_revisions.digest_id", "=", digestId)
+        .innerJoin(
+          "cached_articles",
+          "cached_articles.id",
+          "digest_revisions.article_id",
+        )
+        .innerJoin("agents", "agents.id", "digest_revisions.agent_id")
+        .innerJoin("sources", "sources.id", "cached_articles.source_id")
+        .select([
+          "digest_revisions.title",
+          "digest_revisions.digest",
+          "digest_revisions.created_at",
+          "agents.provider",
+          "agents.model",
+          "sources.slug as source_slug",
+          "sources.url as source_url",
+          "cached_articles.title as article_title",
+          "cached_articles.author",
+          "cached_articles.link",
+          "cached_articles.published_at",
+        ])
+        .execute();
+
+      return rows.map((r) => ({
+        title: r.title,
+        digest: r.digest,
+        created_at: r.created_at,
+        agent: { provider: r.provider, model: r.model },
+        article: {
+          source: { slug: r.source_slug, url: r.source_url },
+          title: r.article_title,
+          author: r.author,
+          link: r.link,
+          published_at: r.published_at,
+        },
+      }));
+    }),
 });
