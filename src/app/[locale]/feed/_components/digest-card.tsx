@@ -1,40 +1,65 @@
 "use client";
 
+import { type Dispatch, type SetStateAction } from "react";
+import { useRouter } from "~/lib/i18n/routing";
 import { Typography } from "../../_components/typography";
+import { Spinner } from "~/components/ui/spinner";
 import { type Digest } from "~/lib/types/feed";
+import { useDigestContext } from "./digest-context";
+import { CategoryBadge } from "./category-badge";
 
-// TODO: articleAge: "2 hours ago", generatedAge: "1 hour ago",
+export function DigestCard({
+  digest,
+  setSelectedDigest,
+}: {
+  digest: Digest;
+  setSelectedDigest: Dispatch<SetStateAction<Digest | null>>;
+}) {
+  const router = useRouter();
+  const { loadingDigest, setLoadingDigest } = useDigestContext();
 
-function CategoryBadge({ category }: { category: string }) {
+  const openModal = () => {
+    setSelectedDigest(digest);
+    setLoadingDigest(digest);
+    router.push("/feed/digests/open");
+  };
+
   return (
-    <span
-      className={
-        "bg-secondary shadow-accent inline-block rounded-full px-3 py-0.5 text-xs font-semibold"
-      }
+    <div
+      className="bg-card border-border rounded-xl border p-5"
+      onClick={() => {
+        if (window.matchMedia("(pointer: fine)").matches) openModal();
+      }}
     >
-      {category}
-    </span>
-  );
-}
-
-export function DigestCard({ article }: { article: Digest }) {
-  return (
-    <div className="bg-card border-border rounded-xl border p-5">
       <div className="flex flex-col gap-2">
         <div className="flex gap-1">
-          {article.categories.map((c) => (
+          {digest.categories.map((c) => (
             <CategoryBadge key={c} category={c} />
           ))}{" "}
         </div>
         <Typography as="h3" variant="heading-3">
-          {article.title}
+          {digest.title}
         </Typography>
         {/* <Typography variant="body-sm" color="muted"> */}
-        {/*   {article.digest} */}
+        {/*   {digest.digest} */}
         {/* </Typography> */}
         <Typography variant="body-sm" color="muted">
-          Generated at {article.updated_at.toLocaleString()}
+          Generated at {digest.updated_at.toLocaleDateString()}
         </Typography>
+        <div className="my-1 hidden w-full items-center justify-center md:flex">
+          {loadingDigest === digest ? (
+            <Spinner className="size-4" />
+          ) : (
+            <Typography
+              as="button"
+              variant="body-sm"
+              className="text-primary"
+              onClick={() => openModal()}
+            >
+              Summary
+            </Typography>
+          )}
+        </div>
       </div>
     </div>
   );

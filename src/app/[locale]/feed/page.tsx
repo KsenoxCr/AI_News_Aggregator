@@ -13,18 +13,25 @@ import { InfoView } from "./_components/info-view";
 import { FEED } from "~/config/business";
 import { PushToPages } from "~/lib/utils/feed";
 import { type Digest } from "~/lib/types/feed";
+import { useDigestContext } from "./_components/digest-context";
+
+// TODO: DigestModal
+// FIX: OOM
 
 // Out of scope for now:
 // TODO: ToolBar: CollationOrderPicker + collation logic
 // TODO: fzf search
 
 export default function FeedPage() {
+  const { setSelectedDigest } = useDigestContext();
   const [categories, setCategories] = useState<Set<string>>(new Set());
   const [activeCategories, setActiveCategories] = useState<Set<string>>(
     new Set(),
   );
   const [pageSize, setPageSize] = useState<number>(FEED.paging[0]);
   const [calendarDate, setCalendarDate] = useState<Date | undefined>();
+  const [prevDate, setPrevDate] = useState<Date | undefined>();
+  const [effectiveDate, setEffectiveDate] = useState<Date | undefined>();
   const [settingsConfirmed, setSettingsConfirmed] = useState(false);
   const [infoMessage, setInfoMessage] = useState<string>("");
   type FeedItem =
@@ -39,7 +46,7 @@ export default function FeedPage() {
 
   const { data: categoriesData } = api.settings.getCategories.useQuery();
   const { data: confirmData } = api.settings.confirmRequired.useQuery();
-  api.news.generateFeed.useSubscription(calendarDate ?? today, {
+  api.news.generateFeed.useSubscription(effectiveDate ?? today, {
     enabled: settingsConfirmed,
     onData: (data) => setFeedData(data),
   });
@@ -49,6 +56,13 @@ export default function FeedPage() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    if (calendarDate?.toDateString() !== prevDate?.toDateString()) {
+      setPrevDate(calendarDate);
+      setEffectiveDate(calendarDate);
+    }
+  }, [calendarDate]);
 
   useEffect(() => {
     if (!categoriesData) return;
@@ -97,6 +111,7 @@ export default function FeedPage() {
           digestPages={digestPages}
           page={page}
           activeCategories={activeCategories}
+          setSelectedDigest={setSelectedDigest}
         />
       );
     if (anyDigests && infoMessage)
@@ -106,6 +121,7 @@ export default function FeedPage() {
             digestPages={digestPages}
             page={page}
             activeCategories={activeCategories}
+            setSelectedDigest={setSelectedDigest}
           />
           <InfoView
             message={infoMessage}
@@ -135,6 +151,7 @@ export default function FeedPage() {
         setPageSize={setPageSize}
         calendarDate={calendarDate}
         setCalendarDate={setCalendarDate}
+        setDigestPages={setDigestPages}
       />
 
       {showFeed()}
