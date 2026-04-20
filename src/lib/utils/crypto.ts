@@ -1,23 +1,20 @@
-import sodium from "sodium-native";
+import sodium from "libsodium-wrappers-sumo";
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 
-const OPSLIMIT = sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE;
-const MEMLIMIT = sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE;
 const HASH_LEN = 32;
 
 // deterministic, zero salt
-export function hashKDF(input: string): Buffer {
-  const out = Buffer.allocUnsafe(HASH_LEN);
-  const salt = Buffer.alloc(sodium.crypto_pwhash_SALTBYTES, 0);
-  sodium.crypto_pwhash(
-    out,
+export async function hashKDF(input: string): Promise<Buffer> {
+  await sodium.ready;
+  const out = sodium.crypto_pwhash(
+    HASH_LEN,
     Buffer.from(input),
-    salt,
-    OPSLIMIT,
-    MEMLIMIT,
+    new Uint8Array(sodium.crypto_pwhash_SALTBYTES), // zero salt
+    sodium.crypto_pwhash_OPSLIMIT_INTERACTIVE,
+    sodium.crypto_pwhash_MEMLIMIT_INTERACTIVE,
     sodium.crypto_pwhash_ALG_ARGON2ID13,
   );
-  return out;
+  return Buffer.from(out);
 }
 
 const ALGO = "aes-256-gcm";

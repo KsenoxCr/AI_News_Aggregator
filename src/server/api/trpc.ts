@@ -28,21 +28,25 @@ import { hashKDF } from "~/lib/utils/crypto";
  * @see https://trpc.io/docs/server/context
  */
 
-const mk = hashKDF(env.CRYPTO_SECRET);
+const mkPromise = hashKDF(env.CRYPTO_SECRET);
 
 export const createTRPCContext = async (opts: { headers: Headers }) => {
-  const session = await auth.api.getSession({ headers: opts.headers });
-  return createInnerTRPCContext({ session, headers: opts.headers });
+  const [session, mk] = await Promise.all([
+    auth.api.getSession({ headers: opts.headers }),
+    mkPromise,
+  ]);
+  return createInnerTRPCContext({ session, headers: opts.headers, mk });
 };
 
 export const createInnerTRPCContext = (opts: {
   session: Awaited<ReturnType<typeof auth.api.getSession>>;
   headers?: Headers;
+  mk: Buffer;
 }) => {
   return {
     session: opts.session,
     headers: opts.headers,
-    mk,
+    mk: opts.mk,
   };
 };
 

@@ -9,8 +9,6 @@ import "./src/env.js";
 const withNextIntl = createNextIntlPlugin("./src/lib/i18n/request.ts");
 
 /** @type {import("next").NextConfig} */
-const config = {
-  serverExternalPackages: ["sodium-native"],
-};
+const config = {};
 
 export default withNextIntl(config);
