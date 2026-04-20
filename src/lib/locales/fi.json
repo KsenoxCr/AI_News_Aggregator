@@ -127,5 +127,21 @@
   "error": {
     "somethingWentWrong": "Jotain meni pieleen",
     "tryAgain": "Yritä uudelleen"
+  },
+  "categories": {
+    "technology": "Teknologia",
+    "politics": "Politiikka",
+    "science": "Tiede",
+    "finance": "Rahoitus",
+    "sports": "Urheilu",
+    "climate": "Ilmasto",
+    "ai": "Tekoäly",
+    "business": "Liiketoiminta",
+    "health": "Terveys",
+    "gaming": "Pelit",
+    "entertainment": "Viihde",
+    "world": "Maailma",
+    "culture": "Kulttuuri",
+    "economy": "Talous"
   }
 }

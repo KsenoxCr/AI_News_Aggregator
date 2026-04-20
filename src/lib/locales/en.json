@@ -127,5 +127,21 @@
   "error": {
     "somethingWentWrong": "Something went wrong",
     "tryAgain": "Try again"
+  },
+  "categories": {
+    "technology": "Technology",
+    "politics": "Politics",
+    "science": "Science",
+    "finance": "Finance",
+    "sports": "Sports",
+    "climate": "Climate",
+    "ai": "AI",
+    "business": "Business",
+    "health": "Health",
+    "gaming": "Gaming",
+    "entertainment": "Entertainment",
+    "world": "World",
+    "culture": "Culture",
+    "economy": "Economy"
   }
 }
