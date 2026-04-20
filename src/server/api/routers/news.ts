@@ -18,8 +18,13 @@ import {
   ExtractUnusedArticles,
   GenerateDigests,
 } from "~/lib/feed";
-import type { ArticleWithCategories, PrevDigest, Source } from "~/server/db/types";
+import type {
+  ArticleWithCategories,
+  Source,
+} from "~/server/db/types";
+import type { PrevDigest } from "~/lib/types/pipeline";
 
+// FIX: OOM (need drastic reducement of space Big-O)
 // TODO: Wrap in tnx appropriately
 
 export const newsRouter = createTRPCRouter({
@@ -30,29 +35,29 @@ export const newsRouter = createTRPCRouter({
       input.setUTCHours(0, 0, 0, 0);
 
       const cachedDigests = (await db
-        .selectFrom("news_digests")
-        .where("news_digests.user_id", "=", ctx.session.user.id)
+        .selectFrom("news_digest")
+        .where("news_digest.user_id", "=", ctx.session.user.id)
         .innerJoin(
-          "digest_revisions",
-          "digest_revisions.digest_id",
-          "news_digests.id",
+          "digest_revision",
+          "digest_revision.digest_id",
+          "news_digest.id",
         )
         .where(({ eb, selectFrom }) =>
           eb(
-            "digest_revisions.revision",
+            "digest_revision.revision",
             "=",
-            selectFrom("digest_revisions as dr_max")
+            selectFrom("digest_revision as dr_max")
               .select(({ fn }) => fn.max("dr_max.revision").as("max_rev"))
-              .whereRef("dr_max.digest_id", "=", "news_digests.id"),
+              .whereRef("dr_max.digest_id", "=", "news_digest.id"),
           ),
         )
         .select([
-          "news_digests.id",
-          "news_digests.updated_at",
-          "digest_revisions.article_id",
-          "digest_revisions.title",
-          "digest_revisions.digest",
-          "digest_revisions.revision",
+          "news_digest.id",
+          "news_digest.updated_at",
+          "digest_revision.article_id",
+          "digest_revision.title",
+          "digest_revision.digest",
+          "digest_revision.revision",
         ])
         .execute()) as (PrevDigest & {
         article_id: string;
@@ -61,7 +66,7 @@ export const newsRouter = createTRPCRouter({
 
       const prevDigestCategoryRows = cachedDigests.length
         ? await db
-            .selectFrom("digest_categories")
+            .selectFrom("digest_category")
             .where(
               "digest_id",
               "in",
@@ -95,16 +100,16 @@ export const newsRouter = createTRPCRouter({
       if (signal?.aborted) return;
 
       const sources = (await db
-        .selectFrom("sources")
+        .selectFrom("source")
         .where("user_id", "=", ctx.session.user.id)
         .where("enabled", "=", 1)
         .select([
-          "sources.id",
-          "sources.slug",
-          "sources.url",
-          "sources.date_filter_param",
-          "sources.date_format",
-          "sources.previous_etag",
+          "source.id",
+          "source.slug",
+          "source.url",
+          "source.date_filter_param",
+          "source.date_format",
+          "source.previous_etag",
         ])
         .execute()) as Source[];
 
@@ -150,12 +155,12 @@ export const newsRouter = createTRPCRouter({
       }
 
       const cached = await db
-        .selectFrom("cached_articles")
+        .selectFrom("cached_article")
         .where("published_at", ">=", input)
         .leftJoin(
-          "article_categories",
-          "article_categories.article_id",
-          "cached_articles.id",
+          "article_category",
+          "article_category.article_id",
+          "cached_article.id",
         )
         .select([
           "id",
@@ -170,7 +175,7 @@ export const newsRouter = createTRPCRouter({
         .execute();
 
       const agent = await db
-        .selectFrom("agents")
+        .selectFrom("agent")
         .where("user_id", "=", ctx.session.user.id)
         .where("enabled", "=", 1)
         .select(["id", "provider", "model", "api_key"])
@@ -183,7 +188,7 @@ export const newsRouter = createTRPCRouter({
         if (fetchedArray.length === 0) return;
 
         await db
-          .insertInto("cached_articles")
+          .insertInto("cached_article")
           .values(StripCategories(fetchedArray))
           .ignore()
           .execute();
@@ -199,7 +204,7 @@ export const newsRouter = createTRPCRouter({
 
         if (cacheMisses!.length > 0)
           await db
-            .insertInto("cached_articles")
+            .insertInto("cached_article")
             .values(StripCategories(cacheMisses!))
             .ignore()
             .execute();
@@ -277,7 +282,7 @@ export const newsRouter = createTRPCRouter({
         );
 
         await db
-          .insertInto("article_categories")
+          .insertInto("article_category")
           .ignore()
           .values(categories)
           .execute();
@@ -340,7 +345,7 @@ export const newsRouter = createTRPCRouter({
         await db.transaction().execute(async (trx) => {
           if (isNew) {
             await trx
-              .insertInto("news_digests")
+              .insertInto("news_digest")
               .values({
                 id: digestId,
                 user_id: ctx.session.user.id,
@@ -351,7 +356,7 @@ export const newsRouter = createTRPCRouter({
 
             if (categories.length > 0)
               await trx
-                .insertInto("digest_categories")
+                .insertInto("digest_category")
                 .values(
                   categories.map((category) => ({
                     digest_id: digestId,
@@ -361,7 +366,7 @@ export const newsRouter = createTRPCRouter({
                 .execute();
           } else {
             const prevCats = await trx
-              .selectFrom("digest_categories")
+              .selectFrom("digest_category")
               .where("digest_id", "=", digestId)
               .select("category")
               .execute();
@@ -371,7 +376,7 @@ export const newsRouter = createTRPCRouter({
 
             if (newCats.length > 0)
               await trx
-                .insertInto("digest_categories")
+                .insertInto("digest_category")
                 .values(
                   newCats.map((category) => ({
                     digest_id: digestId,
@@ -381,16 +386,16 @@ export const newsRouter = createTRPCRouter({
                 .execute();
 
             await trx
-              .updateTable("news_digests")
+              .updateTable("news_digest")
               .set("updated_at", new Date())
               .where("id", "=", digestId)
               .execute();
           }
 
-          await trx.insertInto("digest_revisions").values(revision).execute();
+          await trx.insertInto("digest_revision").values(revision).execute();
 
           await trx
-            .updateTable("cached_articles")
+            .updateTable("cached_article")
             .set("used", 1)
             .where("id", "=", item.article.id)
             .execute();
@@ -416,32 +421,32 @@ export const newsRouter = createTRPCRouter({
     .query(async ({ input: digestId }) => {
       const [rows, categoryRows] = await Promise.all([
         db
-          .selectFrom("digest_revisions")
-          .where("digest_revisions.digest_id", "=", digestId)
+          .selectFrom("digest_revision")
+          .where("digest_revision.digest_id", "=", digestId)
           .innerJoin(
-            "cached_articles",
-            "cached_articles.id",
-            "digest_revisions.article_id",
+            "cached_article",
+            "cached_article.id",
+            "digest_revision.article_id",
           )
-          .innerJoin("agents", "agents.id", "digest_revisions.agent_id")
-          .innerJoin("sources", "sources.id", "cached_articles.source_id")
+          .innerJoin("agent", "agent.id", "digest_revision.agent_id")
+          .innerJoin("source", "source.id", "cached_article.source_id")
           .select([
-            "digest_revisions.title",
-            "digest_revisions.digest",
-            "digest_revisions.created_at",
-            "digest_revisions.article_id",
-            "agents.provider",
-            "agents.model",
-            "sources.slug as source_slug",
-            "sources.url as source_url",
-            "cached_articles.title as article_title",
-            "cached_articles.author",
-            "cached_articles.link",
-            "cached_articles.published_at",
+            "digest_revision.title",
+            "digest_revision.digest",
+            "digest_revision.created_at",
+            "digest_revision.article_id",
+            "agent.provider",
+            "agent.model",
+            "source.slug as source_slug",
+            "source.url as source_url",
+            "cached_article.title as article_title",
+            "cached_article.author",
+            "cached_article.link",
+            "cached_article.published_at",
           ])
           .execute(),
         db
-          .selectFrom("digest_categories")
+          .selectFrom("digest_category")
           .where("digest_id", "=", digestId)
           .select("category")
           .execute(),

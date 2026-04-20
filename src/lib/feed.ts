@@ -24,14 +24,16 @@ import type {
   Article,
   ArticleWithCategories,
   ArticleWithCategory,
+  Source,
+} from "~/server/db/types";
+import type {
   ClassifyArticlesResult,
   DigestRequest,
   DigestRoutingResult,
   PrevDigest,
   PrevDigestHeader,
-  Source,
   Translator,
-} from "~/server/db/types";
+} from "~/lib/types/pipeline";
 
 export async function NormalizeFeed(xmlFeed: string, source: Source) {
   const parser = new Parser({
@@ -117,7 +119,7 @@ export async function FetchFeed(source: Source, date: Date) {
   // TODO: updating etag must be atomic with fetched insertion. if etag inserted && fetched insertion fails -> subsequent calls: wont fetch resource with identical etag and cache is empty = no articles to generate digests from
 
   await db
-    .updateTable("sources")
+    .updateTable("source")
     .set("previous_etag", fetched.etag)
     .where("id", "=", source.id)
     .execute();
@@ -141,7 +143,7 @@ export async function ClassifyArticles(
   const schemaString = JSON.stringify(zodToJsonSchema(outputSchema));
 
   const categories = (
-    await db.selectFrom("user_categories").select("category").execute()
+    await db.selectFrom("user_category").select("category").execute()
   ).map((uc) => uc.category);
 
   const input = AgentInputFactory(
@@ -410,7 +412,7 @@ export async function* GenerateDigests(
   }
 
   const maxRow = await db
-    .selectFrom("digest_revisions")
+    .selectFrom("digest_revision")
     .select(({ fn }) => fn.max("input_tokens").as("max_input_tokens"))
     .executeTakeFirst();
 

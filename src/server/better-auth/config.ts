@@ -50,7 +50,7 @@ export const auth = betterAuth({
         });
       },
     },
-    modelName: "users",
+    modelName: "user",
     fields: {
       createdAt: "created_at",
       updatedAt: "updated_at",
@@ -77,7 +77,7 @@ export const auth = betterAuth({
       maxAge: AUTH.sessionCacheMaxAge,
       strategy: "compact",
     },
-    modelName: "sessions",
+    modelName: "session",
     fields: {
       userId: "user_id",
       expiresAt: "expires_at",
@@ -100,7 +100,7 @@ export const auth = betterAuth({
     },
   },
   verification: {
-    modelName: "magic_link_tokens",
+    modelName: "magic_link_token",
     fields: {
       identifier: "token_hash",
       createdAt: "created_at",
@@ -135,7 +135,7 @@ export const auth = betterAuth({
           }));
 
           const allCategories = await db
-            .selectFrom("categories")
+            .selectFrom("category")
             .select("slug")
             .execute();
 
@@ -145,10 +145,10 @@ export const auth = betterAuth({
             .map((c) => ({ user_id: user.id, category: c.slug }));
 
           await Promise.all([
-            db.insertInto("sources").values(sources).execute(),
+            db.insertInto("source").values(sources).execute(),
             defaultCategories.length > 0
               ? db
-                  .insertInto("user_categories")
+                  .insertInto("user_category")
                   .values(defaultCategories)
                   .execute()
               : Promise.resolve(),
@@ -160,7 +160,7 @@ export const auth = betterAuth({
       update: {
         after: async (verification, context) => {
           await db
-            .updateTable("magic_link_tokens")
+            .updateTable("magic_link_token")
             .set({
               used: 1,
               used_at: new Date(),
@@ -177,7 +177,7 @@ export const auth = betterAuth({
       create: {
         before: async (session) => {
           const user = await db
-            .selectFrom("users")
+            .selectFrom("user")
             .select("role")
             .where("id", "=", session.userId)
             .executeTakeFirst();

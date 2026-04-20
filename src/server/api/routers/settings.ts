@@ -26,23 +26,23 @@ export const settingsRouter = createTRPCRouter({
     const [sources, agents, allCategories, userCategories, user] =
       await Promise.all([
         db
-          .selectFrom("sources")
+          .selectFrom("source")
           .selectAll()
           .where("user_id", "=", userId)
           .execute(),
         db
-          .selectFrom("agents")
+          .selectFrom("agent")
           .select(["id", "provider", "api_key as key", "model", "enabled"])
           .where("user_id", "=", userId)
           .execute(),
-        db.selectFrom("categories").select("slug").execute(),
+        db.selectFrom("category").select("slug").execute(),
         db
-          .selectFrom("user_categories")
+          .selectFrom("user_category")
           .select("category")
           .where("user_id", "=", userId)
           .execute(),
         db
-          .selectFrom("users")
+          .selectFrom("user")
           .select(["preferences", "locale"])
           .where("id", "=", userId)
           .executeTakeFirstOrThrow(),
@@ -92,13 +92,13 @@ export const settingsRouter = createTRPCRouter({
 
     const [sources, agents] = await Promise.all([
       db
-        .selectFrom("sources")
+        .selectFrom("source")
         .where("user_id", "=", userId)
         .where("enabled", "=", 1)
         .select(({ fn }) => fn.count("id").as("count"))
         .executeTakeFirst(),
       db
-        .selectFrom("agents")
+        .selectFrom("agent")
         .where("user_id", "=", userId)
         .where("enabled", "=", 1)
         .select(({ fn }) => fn.count("id").as("count"))
@@ -121,7 +121,7 @@ export const settingsRouter = createTRPCRouter({
   }),
   getCategories: protectedProcedure.query(async ({ ctx }) => {
     const userCategories = await db
-      .selectFrom("user_categories")
+      .selectFrom("user_category")
       .select("category")
       .where("user_id", "=", ctx.session.user.id)
       .execute();
@@ -137,7 +137,7 @@ export const settingsRouter = createTRPCRouter({
       await Promise.all(
         validated.sources.map((s) =>
           db
-            .updateTable("sources")
+            .updateTable("source")
             .set("enabled", s.enabled ? 1 : 0)
             .where("id", "=", s.source_id)
             .where("user_id", "=", userId)
@@ -147,7 +147,7 @@ export const settingsRouter = createTRPCRouter({
 
       if (validated.agents.add.length > 0)
         await db
-          .insertInto("agents")
+          .insertInto("agent")
           .values(
             validated.agents.add.map((a) => ({
               id: crypto.randomUUID(),
@@ -163,7 +163,7 @@ export const settingsRouter = createTRPCRouter({
 
       if (validated.agents.remove.length > 0)
         await db
-          .deleteFrom("agents")
+          .deleteFrom("agent")
           .where("id", "in", validated.agents.remove)
           .where("user_id", "=", userId)
           .execute();
@@ -172,7 +172,7 @@ export const settingsRouter = createTRPCRouter({
         await Promise.all(
           validated.agents.enable.map((id) =>
             db
-              .updateTable("agents")
+              .updateTable("agent")
               .set("enabled", 1)
               .where("id", "=", id)
               .where("user_id", "=", userId)
@@ -184,7 +184,7 @@ export const settingsRouter = createTRPCRouter({
         await Promise.all(
           validated.agents.disable.map((id) =>
             db
-              .updateTable("agents")
+              .updateTable("agent")
               .set("enabled", 0)
               .where("id", "=", id)
               .where("user_id", "=", userId)
@@ -194,7 +194,7 @@ export const settingsRouter = createTRPCRouter({
 
       if (validated.preferences.categories.add.length > 0)
         await db
-          .insertInto("user_categories")
+          .insertInto("user_category")
           .ignore()
           .values(
             validated.preferences.categories.add.map((category) => ({
@@ -206,13 +206,13 @@ export const settingsRouter = createTRPCRouter({
 
       if (validated.preferences.categories.remove.length > 0)
         await db
-          .deleteFrom("user_categories")
+          .deleteFrom("user_category")
           .where("user_id", "=", userId)
           .where("category", "in", validated.preferences.categories.remove)
           .execute();
 
       await db
-        .updateTable("users")
+        .updateTable("user")
         .set({
           preferences: validated.preferences.preferences,
           locale: validated.preferences.locale,
@@ -262,7 +262,7 @@ export const settingsRouter = createTRPCRouter({
 
       try {
         await db
-          .insertInto("sources")
+          .insertInto("source")
           .values({
             id: sourceId,
             slug: validated.slug,
@@ -300,7 +300,7 @@ export const settingsRouter = createTRPCRouter({
       const validated = schema.parse(input);
 
       const result = await db
-        .deleteFrom("sources")
+        .deleteFrom("source")
         .where("id", "=", validated)
         .where("user_id", "=", ctx.session.user.id)
         .execute();
