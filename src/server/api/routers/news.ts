@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
+import { logMem } from "~/lib/utils/debug";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import Parser from "rss-parser";
 import { v5 as uuidv5 } from "uuid";
@@ -182,9 +183,7 @@ async function ClassifyArticles(
     `[ClassifyArticles] LLM output must be a JSON array, got: ${typeof classified}`,
   );
 
-  console.log(
-    `${classified.length} articles classified out of ${articles.length} input articles`,
-  );
+  // console.log(`${classified.length} articles classified out of ${articles.length} input articles`);
 
   return { status: "success", classified };
 }
@@ -478,7 +477,7 @@ async function* GenerateDigests(
       ? maxRowInputTokens
       : DIGEST.bootstrapMaxTokens;
 
-  console.log(`[GenerateDigests] maxInputTokens: ${maxInputTokens}`);
+  // console.log(`[GenerateDigests] maxInputTokens: ${maxInputTokens}`);
 
   const prevDigestsMap = new Map<string, PrevDigest>(
     prevDigests.map((d) => [d.id, d]),
@@ -530,7 +529,7 @@ export const newsRouter = createTRPCRouter({
       const input = new Date(rawInput);
       input.setUTCHours(0, 0, 0, 0);
 
-      console.log(input);
+      // console.log(input);
 
       console.log("[generateFeed] phase 0: start");
 
@@ -590,9 +589,7 @@ export const newsRouter = createTRPCRouter({
       const cachedToYield = cachedDigests
         .filter((d) => {
           const pass = d.updated_at >= input;
-          console.log(
-            `[cachedDigests filter] updated_at=${d.updated_at.toISOString()} input=${input.toISOString()} pass=${pass}`,
-          );
+          // console.log(`[cachedDigests filter] updated_at=${d.updated_at.toISOString()} input=${input.toISOString()} pass=${pass}`);
           return pass;
         })
         .map((digest) => ({
@@ -641,6 +638,7 @@ export const newsRouter = createTRPCRouter({
       let fetchedArray = [] as ArticleWithCategories[];
 
       console.log("[generateFeed] phase 4: fetching feeds");
+      logMem("pre-fetch-loop");
 
       yield {
         status: "success" as const,
@@ -649,6 +647,7 @@ export const newsRouter = createTRPCRouter({
 
       for (const source of sources) {
         if (signal?.aborted) return;
+        logMem(`FetchFeed:${source.slug}`);
         const fetchResult = await FetchFeed(source, input);
 
         if (!fetchResult) continue;
@@ -681,6 +680,7 @@ export const newsRouter = createTRPCRouter({
       console.log(
         `[generateFeed] phase 5: total fetched articles: ${fetchedArray.length}; querying cache`,
       );
+      logMem("pre-cache-query");
 
       const cached = await db
         .selectFrom("cached_articles")
@@ -787,6 +787,7 @@ export const newsRouter = createTRPCRouter({
       console.log(
         `[generateFeed] phase 10: calling ClassifyArticles on ${unclassified.length} articles`,
       );
+      logMem("pre-classify");
 
       const configured = await AgentAdapterFactory(
         agent.provider as AgentProvider,
@@ -886,13 +887,6 @@ export const newsRouter = createTRPCRouter({
         `[generateFeed] phase 14: using ${cachedDigests.length} existing digest headers`,
       );
 
-      type NewDigest = {
-        id: string;
-        user_id: string;
-        expires_at: Date;
-        updated_at: Date;
-      };
-
       type NewRevision = {
         id: string;
         digest_id: string;
@@ -904,19 +898,14 @@ export const newsRouter = createTRPCRouter({
         input_tokens: number;
       };
 
-      type DigestCategory = { digest_id: string; category: string };
-
-      const newDigestAggregates: NewDigest[] = [];
-      const newDigestCategories: DigestCategory[] = [];
-      const newRevisions: NewRevision[] = [];
-      const updateRevisions = new Map<string, NewRevision[]>();
-
       let count = 1;
 
       yield {
         status: "success" as const,
         info: ctx.t("success.feed.generatingDigests"),
       };
+
+      logMem("pre-generate-loop");
 
       for await (const result of GenerateDigests(
         agentAdapter,
@@ -927,6 +916,7 @@ export const newsRouter = createTRPCRouter({
         if (signal?.aborted) return;
         if (result.status === "failure") return yield result;
 
+        logMem(`GenerateDigests:#${count}`);
         const { item, data, meta } = result;
         const isNew = item.digest === "new";
         const digestId = isNew ? randomUUID() : (item.digest as PrevDigest).id;
@@ -934,19 +924,7 @@ export const newsRouter = createTRPCRouter({
           ? (item.article.categories ?? [])
           : (prevCategoriesMap.get(digestId) ?? []);
 
-        yield {
-          status: result.status,
-          digestRevision: {
-            title: result.data.title,
-            digest: result.data.digest,
-            article_id: result.item.article.id,
-            digest_id: digestId,
-            categories,
-            updated_at: new Date(),
-          },
-        };
-
-        console.log(`digest #${count} out of ${classified.length} yielded`);
+        // console.log(`digest #${count} out of ${classified.length} yielded`);
         const revisionNumber = isNew
           ? 1
           : (item.digest as PrevDigest).revision + 1;
@@ -962,86 +940,78 @@ export const newsRouter = createTRPCRouter({
           input_tokens: meta.inputTokens,
         };
 
-        if (isNew) {
-          newDigestAggregates.push({
-            id: digestId,
-            user_id: ctx.session.user.id,
-            expires_at: new Date(Date.now() + MAX.timeframe),
-            updated_at: new Date(),
-          });
-        } else {
-          const bucket = updateRevisions.get(digestId) ?? [];
-          bucket.push(revision);
-          updateRevisions.set(digestId, bucket);
-        }
-
-        item.article.categories?.forEach((category) =>
-          newDigestCategories.push({ digest_id: digestId, category }),
-        );
-
-        newRevisions.push(revision);
-
-        count++;
-      }
-
-      // Filter missing digest categories - strip categories already present on updated digests
-      if (updateRevisions.size > 0) {
-        const updateDigestIds = [...updateRevisions.keys()];
-        const prevDigestCategories = await db
-          .selectFrom("digest_categories")
-          .where("digest_id", "in", updateDigestIds)
-          .select(["digest_id", "category"])
-          .execute();
-
-        const prevCatSet = new Set(
-          prevDigestCategories.map((c) => `${c.digest_id}:${c.category}`),
-        );
-
-        const filtered = newDigestCategories.filter(
-          (c) =>
-            !updateDigestIds.includes(c.digest_id) ||
-            !prevCatSet.has(`${c.digest_id}:${c.category}`),
-        );
-        newDigestCategories.splice(0, newDigestCategories.length, ...filtered);
-      }
-
-      if (newRevisions.length > 0) {
         await db.transaction().execute(async (trx) => {
-          if (newDigestAggregates.length > 0)
+          if (isNew) {
             await trx
               .insertInto("news_digests")
-              .values(newDigestAggregates)
+              .values({
+                id: digestId,
+                user_id: ctx.session.user.id,
+                expires_at: new Date(Date.now() + MAX.timeframe),
+                updated_at: new Date(),
+              })
               .execute();
 
-          if (newDigestCategories.length > 0)
-            await trx
-              .insertInto("digest_categories")
-              .values(newDigestCategories)
+            if (categories.length > 0)
+              await trx
+                .insertInto("digest_categories")
+                .values(
+                  categories.map((category) => ({
+                    digest_id: digestId,
+                    category,
+                  })),
+                )
+                .execute();
+          } else {
+            const prevCats = await trx
+              .selectFrom("digest_categories")
+              .where("digest_id", "=", digestId)
+              .select("category")
               .execute();
 
-          await trx
-            .insertInto("digest_revisions")
-            .values(newRevisions)
-            .execute();
+            const prevCatSet = new Set(prevCats.map((c) => c.category));
+            const newCats = categories.filter((c) => !prevCatSet.has(c));
 
-          await trx
-            .updateTable("cached_articles")
-            .set("used", 1)
-            .where(
-              "id",
-              "in",
-              newRevisions.map((result) => result.article_id),
-            )
-            .execute();
+            if (newCats.length > 0)
+              await trx
+                .insertInto("digest_categories")
+                .values(
+                  newCats.map((category) => ({
+                    digest_id: digestId,
+                    category,
+                  })),
+                )
+                .execute();
 
-          for (const digestId of updateRevisions.keys()) {
             await trx
               .updateTable("news_digests")
               .set("updated_at", new Date())
               .where("id", "=", digestId)
               .execute();
           }
+
+          await trx.insertInto("digest_revisions").values(revision).execute();
+
+          await trx
+            .updateTable("cached_articles")
+            .set("used", 1)
+            .where("id", "=", item.article.id)
+            .execute();
         });
+
+        yield {
+          status: result.status,
+          digestRevision: {
+            title: data.title,
+            digest: data.digest,
+            article_id: item.article.id,
+            digest_id: digestId,
+            categories,
+            updated_at: new Date(),
+          },
+        };
+
+        count++;
       }
 
       return yield { status: "success" };
@@ -1049,43 +1019,55 @@ export const newsRouter = createTRPCRouter({
   getRevisions: protectedTranslatedProcedure
     .input(z.string())
     .query(async ({ input: digestId }) => {
-      const rows = await db
-        .selectFrom("digest_revisions")
-        .where("digest_revisions.digest_id", "=", digestId)
-        .innerJoin(
-          "cached_articles",
-          "cached_articles.id",
-          "digest_revisions.article_id",
-        )
-        .innerJoin("agents", "agents.id", "digest_revisions.agent_id")
-        .innerJoin("sources", "sources.id", "cached_articles.source_id")
-        .select([
-          "digest_revisions.title",
-          "digest_revisions.digest",
-          "digest_revisions.created_at",
-          "agents.provider",
-          "agents.model",
-          "sources.slug as source_slug",
-          "sources.url as source_url",
-          "cached_articles.title as article_title",
-          "cached_articles.author",
-          "cached_articles.link",
-          "cached_articles.published_at",
-        ])
-        .execute();
+      const [rows, categoryRows] = await Promise.all([
+        db
+          .selectFrom("digest_revisions")
+          .where("digest_revisions.digest_id", "=", digestId)
+          .innerJoin(
+            "cached_articles",
+            "cached_articles.id",
+            "digest_revisions.article_id",
+          )
+          .innerJoin("agents", "agents.id", "digest_revisions.agent_id")
+          .innerJoin("sources", "sources.id", "cached_articles.source_id")
+          .select([
+            "digest_revisions.title",
+            "digest_revisions.digest",
+            "digest_revisions.created_at",
+            "digest_revisions.article_id",
+            "agents.provider",
+            "agents.model",
+            "sources.slug as source_slug",
+            "sources.url as source_url",
+            "cached_articles.title as article_title",
+            "cached_articles.author",
+            "cached_articles.link",
+            "cached_articles.published_at",
+          ])
+          .execute(),
+        db
+          .selectFrom("digest_categories")
+          .where("digest_id", "=", digestId)
+          .select("category")
+          .execute(),
+      ]);
 
-      return rows.map((r) => ({
-        title: r.title,
-        digest: r.digest,
-        created_at: r.created_at,
-        agent: { provider: r.provider, model: r.model },
-        article: {
-          source: { slug: r.source_slug, url: r.source_url },
-          title: r.article_title,
-          author: r.author,
-          link: r.link,
-          published_at: r.published_at,
-        },
-      }));
+      return {
+        categories: categoryRows.map((r) => r.category),
+        revisions: rows.map((r) => ({
+          title: r.title,
+          digest: r.digest,
+          created_at: r.created_at,
+          agent: { provider: r.provider, model: r.model },
+          article: {
+            id: r.article_id,
+            source: { slug: r.source_slug, url: r.source_url },
+            title: r.article_title,
+            author: r.author,
+            link: r.link,
+            published_at: r.published_at,
+          },
+        })),
+      };
     }),
 });
