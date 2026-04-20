@@ -67,15 +67,15 @@ export function oklchToHex(l: number, c: number, h: number, alpha = 1): string {
 
 export function formatDate(date: Date, dateFormat: DateFormat): string {
   switch (dateFormat) {
-    case DATE_FORMAT.ISO_8601:
+    case DATE_FORMAT.ISO8601:
       return date.toISOString();
-    case DATE_FORMAT.ISO_DATE:
+    case DATE_FORMAT.ISODATE:
       return date.toISOString().slice(0, 10);
     case DATE_FORMAT.UNIX:
       return String(Math.floor(date.getTime() / 1000));
-    case DATE_FORMAT.RFC_1123:
+    case DATE_FORMAT.RFC1123:
       return date.toUTCString();
-    case DATE_FORMAT.RFC_822:
+    case DATE_FORMAT.RFC822:
       return format(date, "dd MMM yyyy HH:mm:ss xx");
     default:
       throw new Error(`Unhandled date format: ${dateFormat satisfies never}`);

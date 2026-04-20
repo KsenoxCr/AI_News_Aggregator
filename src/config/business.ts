@@ -1,5 +1,3 @@
-// TODO: All fields to UPPERCASE
-
 export const BRAND = {
   appName: "AI News",
   developer: "Ksenox",
@@ -24,11 +22,11 @@ export const FEED_FORMAT = {
 } as const;
 
 export const DATE_FORMAT = {
-  ISO_8601: "ISO_8601",
-  ISO_DATE: "ISO_DATE",
+  ISO8601: "ISO_8601",
+  ISODATE: "ISO_DATE",
   UNIX: "UNIX",
-  RFC_1123: "RFC_1123",
-  RFC_822: "RFC_822",
+  RFC1123: "RFC_1123",
+  RFC822: "RFC_822",
 } as const;
 
 export type DateFormat = (typeof DATE_FORMAT)[keyof typeof DATE_FORMAT];
