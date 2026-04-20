@@ -1,5 +1,6 @@
 export const BRAND = {
   appName: "AI News",
+  description: "News for you",
   developer: "Ksenox",
   publishmentYear: "2026",
 } as const;
