@@ -61,7 +61,7 @@ export default function SettingsPage() {
         dbSettings.preferences.categories.map((c) => [c.category, c.enabled]),
       ),
     );
-    setFreeform(dbSettings.preferences.freeform);
+    // setFreeform(dbSettings.preferences.freeform);
     setAgents(
       dbSettings.agents.map((a) => ({
         id: a.id,
