@@ -59,11 +59,6 @@ export function AgentInputFactory(
             content: prompt,
           },
         ],
-        // response_format: responseSchema
-        //   ? {
-        //       type: "json_schema",
-        //     }
-        //   : undefined,
       };
     case AGENT.Anthropic.endpoint:
       return {
