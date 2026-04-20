@@ -18,7 +18,7 @@ export const env = createEnv({
     RESEND_API_KEY: z.string(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
-      .default("development"),
+      .default("production"),
   },
 
   /**
