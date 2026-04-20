@@ -8,7 +8,7 @@ import { getMessages } from "next-intl/server";
 import { notFound } from "next/navigation";
 import { routing } from "~/lib/i18n/routing";
 import { ThemeProvider } from "next-themes";
-import { Toaster } from "sonner";
+import { Toaster } from "~/components/ui/sonner";
 import { TooltipProvider } from "~/components/ui/tooltip";
 import { DigestProvider } from "~/app/[locale]/feed/_components/digest-context";
 import type { Metadata } from "next";

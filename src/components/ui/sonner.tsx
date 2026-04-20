@@ -12,13 +12,11 @@ import {
 } from "@hugeicons/core-free-icons";
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  // FIX: Toast colorscheme not cohering with theme change
-
-  const { theme } = useTheme();
+  const { resolvedTheme: theme } = useTheme();
 
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme={(theme ?? "dark") as ToasterProps["theme"]}
       className="toaster group"
       icons={{
         success: (
@@ -57,17 +55,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
           />
         ),
       }}
-      style={
-        {
-          "--normal-bg": "var(--popover)",
-          "--normal-text": "var(--popover-foreground)",
-          "--normal-border": "var(--border)",
-          "--border-radius": "var(--radius)",
-        } as React.CSSProperties
-      }
+      style={{ "--border-radius": "var(--radius)" } as React.CSSProperties}
       toastOptions={{
         classNames: {
-          toast: "cn-toast",
+          toast: "bg-card! text-card-foreground! border-border!",
         },
       }}
       {...props}
