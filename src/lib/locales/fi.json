@@ -86,7 +86,8 @@
     "feed": {
       "fetchingSources": "Haetaan artikkeleita lähteistäsi",
       "classifyingArticles": "Luokitellaan artikkeleita",
-      "generatingDigests": "Luodaan tiivistelmiä"
+      "generatingDigests": "Luodaan tiivistelmiä",
+      "noNewArticles": "Ei uusia artikkeleita käsiteltäväksi"
     }
   },
   "errors": {
@@ -99,7 +100,8 @@
       "notFound": "Lähdettä ei löydy"
     },
     "feed": {
-      "invalidFormat": "Virheellinen syötemuoto"
+      "invalidFormat": "Virheellinen syötemuoto",
+      "noSources": "Lähteitä ei ole määritetty"
     },
     "settings": {
       "missing": {

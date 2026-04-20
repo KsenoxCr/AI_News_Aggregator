@@ -86,7 +86,8 @@
     "feed": {
       "fetchingSources": "Fetching articles from your sources",
       "classifyingArticles": "Classifying articles",
-      "generatingDigests": "Generating digests"
+      "generatingDigests": "Generating digests",
+      "noNewArticles": "No new articles to process"
     }
   },
   "errors": {
@@ -99,7 +100,8 @@
       "notFound": "Source not found"
     },
     "feed": {
-      "invalidFormat": "Invalid feed format"
+      "invalidFormat": "Invalid feed format",
+      "noSources": "No sources configured"
     },
     "settings": {
       "missing": {
