@@ -10,7 +10,7 @@ export type Generated<T> =
     ? ColumnType<S, I | undefined, U>
     : ColumnType<T, T | undefined, T>;
 
-export interface Agents {
+export interface Agent {
   api_key: string;
   enabled: Generated<number>;
   id: string;
@@ -20,12 +20,12 @@ export interface Agents {
   user_id: string;
 }
 
-export interface ArticleCategories {
+export interface ArticleCategory {
   article_id: string;
   category: string;
 }
 
-export interface CachedArticles {
+export interface CachedArticle {
   author: string;
   source_id: string;
   id: string;
@@ -35,16 +35,16 @@ export interface CachedArticles {
   used: Generated<number>;
 }
 
-export interface Categories {
+export interface Category {
   slug: string;
 }
 
-export interface DigestCategories {
+export interface DigestCategory {
   category: string;
   digest_id: string;
 }
 
-export interface DigestSources {
+export interface DigestSource {
   digest_id: string;
   id: string;
   published_at: Date | null;
@@ -54,7 +54,7 @@ export interface DigestSources {
   url_hash: string;
 }
 
-export interface MagicLinkTokens {
+export interface MagicLinkToken {
   created_at: Generated<Date>;
   expires_at: Date;
   id: string;
@@ -66,7 +66,7 @@ export interface MagicLinkTokens {
   value: string;
 }
 
-export interface DigestRevisions {
+export interface DigestRevision {
   agent_id: string;
   article_id: string;
   created_at: Generated<Date>;
@@ -78,7 +78,7 @@ export interface DigestRevisions {
   title: string;
 }
 
-export interface NewsDigests {
+export interface NewsDigest {
   created_at: Generated<Date>;
   expires_at: Date;
   id: string;
@@ -86,7 +86,7 @@ export interface NewsDigests {
   user_id: string;
 }
 
-export interface Sessions {
+export interface Session {
   created_at: Generated<Date>;
   expires_at: Date;
   id: string;
@@ -99,7 +99,7 @@ export interface Sessions {
   user_id: string;
 }
 
-export interface Sources {
+export interface Source {
   auth_credential: string | null;
   auth_type: Generated<"api_key" | "basic" | "bearer" | "cookie" | "none">;
   date_filter_param: string | null;
@@ -113,12 +113,12 @@ export interface Sources {
   user_id: string;
 }
 
-export interface UserCategories {
+export interface UserCategory {
   category: string;
   user_id: string;
 }
 
-export interface Users {
+export interface User {
   created_at: Generated<Date>;
   email: string;
   email_verified: Generated<number>;
@@ -133,17 +133,17 @@ export interface Users {
 }
 
 export interface DB {
-  agents: Agents;
-  article_categories: ArticleCategories;
-  cached_articles: CachedArticles;
-  categories: Categories;
-  digest_categories: DigestCategories;
-  digest_revisions: DigestRevisions;
-  digest_sources: DigestSources;
-  magic_link_tokens: MagicLinkTokens;
-  news_digests: NewsDigests;
-  sessions: Sessions;
-  sources: Sources;
-  user_categories: UserCategories;
-  users: Users;
+  agent: Agent;
+  article_category: ArticleCategory;
+  cached_article: CachedArticle;
+  category: Category;
+  digest_category: DigestCategory;
+  digest_revision: DigestRevision;
+  digest_source: DigestSource;
+  magic_link_token: MagicLinkToken;
+  news_digest: NewsDigest;
+  session: Session;
+  source: Source;
+  user_category: UserCategory;
+  user: User;
 }
