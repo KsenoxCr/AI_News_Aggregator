@@ -37,6 +37,7 @@ interface Props {
   setPrevEnabledAgent: React.Dispatch<
     React.SetStateAction<AgentProvider | null>
   >;
+  isPending: boolean;
 }
 
 export function AIModelSettings({
@@ -44,6 +45,7 @@ export function AIModelSettings({
   setAgents,
   prevEnabledAgent,
   setPrevEnabledAgent,
+  isPending,
 }: Props) {
   const t = useTranslations();
   const [apiKeyInputs, setApiKeyInputs] = useState<Map<AgentProvider, string>>(
@@ -81,7 +83,14 @@ export function AIModelSettings({
     agent: AgentState | undefined,
     provider: AgentProvider,
   ) => {
-    if (!agent) return <Spinner className="size-4" />;
+    if (!agent || provider !== "Groq") {
+      if (isPending) return <Spinner className="size-4" />;
+      return (
+        <Typography variant="body-sm" className="text-muted-foreground">
+          {t("settings.aiModel.waitingForApiKey")}
+        </Typography>
+      );
+    }
 
     const models = agent.models.filter((m) =>
       (AGENT[provider].supported_models as readonly string[]).includes(m),
@@ -205,49 +214,51 @@ export function AIModelSettings({
                     </Button>
                   )}
                 </div>
-                <form
-                  className="flex gap-2"
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (agent) {
-                      setAgents((prev) =>
-                        prev.filter((a) => a.provider !== provider),
-                      );
-                    } else {
-                      await handleAPI(provider);
-                    }
-                  }}
-                >
-                  <Input
-                    placeholder={t("settings.aiModel.apiKeyPlaceholder")}
-                    className="flex-1 text-xs"
-                    disabled={!!agent}
-                    value={
-                      agent
-                        ? agent.key.slice(0, 6) + "*".repeat(32)
-                        : (apiKeyInputs.get(provider) ?? "")
-                    }
-                    onChange={(e) =>
-                      setApiKeyInputs((prev) =>
-                        new Map(prev).set(provider, e.target.value),
-                      )
-                    }
-                  />
-                  <Button
-                    type="submit"
-                    size="sm"
-                    variant={agent ? "destructive" : "default"}
-                    className="shrink-0"
-                    disabled={validateAPIKeyMutation.isPending}
+                {provider !== "Groq" && (
+                  <form
+                    className="flex gap-2"
+                    onSubmit={async (e) => {
+                      e.preventDefault();
+                      if (agent) {
+                        setAgents((prev) =>
+                          prev.filter((a) => a.provider !== provider),
+                        );
+                      } else {
+                        await handleAPI(provider);
+                      }
+                    }}
                   >
-                    {/* TODO: Swap with spinner during handleAPI resolution*/}
-                    {/* TODO: Confirmation w/warning for removal*/}
-                    {/* FIX: after removal, "waiting for api key", not spinner like now */}
-                    {agent
-                      ? t("settings.aiModel.remove")
-                      : t("settings.aiModel.add")}
-                  </Button>
-                </form>
+                    <Input
+                      placeholder={t("settings.aiModel.apiKeyPlaceholder")}
+                      className="flex-1 text-xs"
+                      disabled={!!agent}
+                      value={
+                        agent
+                          ? agent.key.slice(0, 6) + "*".repeat(32)
+                          : (apiKeyInputs.get(provider) ?? "")
+                      }
+                      onChange={(e) =>
+                        setApiKeyInputs((prev) =>
+                          new Map(prev).set(provider, e.target.value),
+                        )
+                      }
+                    />
+                    <Button
+                      type="submit"
+                      size="sm"
+                      variant={agent ? "destructive" : "default"}
+                      className="shrink-0"
+                      disabled={validateAPIKeyMutation.isPending}
+                    >
+                      {/* TODO: Swap with spinner during handleAPI resolution*/}
+                      {/* TODO: Confirmation w/warning for removal*/}
+                      {/* FIX: after removal, "waiting for api key", not spinner like now */}
+                      {agent
+                        ? t("settings.aiModel.remove")
+                        : t("settings.aiModel.add")}
+                    </Button>
+                  </form>
+                )}
                 <Typography
                   variant="body-sm"
                   weight="semibold"

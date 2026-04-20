@@ -8,6 +8,7 @@ const DISABLED_COLOR = "#9ca3af";
 const ENABLED_COLORS: Record<AgentProvider, string> = {
   OpenAI: "#ffffff",
   Anthropic: "#d97757",
+  Groq: "#f55036",
 };
 
 interface ProviderButtonProps extends React.ComponentProps<typeof Button> {

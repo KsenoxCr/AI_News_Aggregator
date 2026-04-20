@@ -25,6 +25,8 @@ import { authClient } from "~/server/better-auth/client";
 import { Unauthorized } from "../_components/unauthorized";
 import { Spinner } from "~/components/ui/spinner";
 
+// TODO: groq free model (new agent adapter + svg + entry in business.AGENT)
+
 const TOAST_POS = { position: "top-center" } as const;
 
 export default function SettingsPage() {
@@ -32,7 +34,7 @@ export default function SettingsPage() {
   const t = useTranslations();
   const router = useRouter();
   const utils = api.useUtils();
-  const { data: dbSettings } = api.settings.load.useQuery(undefined, {
+  const { data: dbSettings, isPending: settingsPending } = api.settings.load.useQuery(undefined, {
     enabled: !sessionPending && !!session,
   });
 
@@ -187,6 +189,7 @@ export default function SettingsPage() {
           setAgents={setAgents}
           prevEnabledAgent={prevEnabledAgent}
           setPrevEnabledAgent={setPrevEnabledAgent}
+          isPending={settingsPending}
         />
 
         <PreferencesSettings

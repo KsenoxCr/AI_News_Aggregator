@@ -4,6 +4,7 @@ import type { AgentProvider } from "~/config/business";
 const PROVIDER_FILL: Record<AgentProvider, string> = {
   OpenAI: "#ffffff",
   Anthropic: "#d97757",
+  Groq: "#f55036",
 };
 
 export function AgentTag({
@@ -21,6 +22,9 @@ export function AgentTag({
       break;
     case "Anthropic":
       ProviderSvg = PROVIDER_SVG_MAP.Anthropic;
+      break;
+    case "Groq":
+      ProviderSvg = PROVIDER_SVG_MAP.Groq;
       break;
     default:
       provider satisfies never;

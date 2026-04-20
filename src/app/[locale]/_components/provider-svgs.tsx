@@ -20,9 +20,19 @@ export function AnthropicSVG(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+export function GroqSVG(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" {...props}>
+      <circle cx="12" cy="12" r="12" />
+      <path d="M12.8 2L4.8 14H12L11.2 22L19.2 10H12L12.8 2Z" fill="white" />
+    </svg>
+  );
+}
+
 export const PROVIDER_SVG_MAP = {
   OpenAI: OpenAISVG,
   Anthropic: AnthropicSVG,
+  Groq: GroqSVG,
 } as const satisfies Record<
   AgentProvider,
   React.FC<React.SVGProps<SVGSVGElement>>

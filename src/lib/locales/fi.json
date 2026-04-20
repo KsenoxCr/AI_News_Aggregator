@@ -61,6 +61,7 @@
       "add": "Lisää",
       "models": "Mallit",
       "noModelsAvailable": "Malleja ei saatavilla",
+      "waitingForApiKey": "Odottaa API-avainta",
       "remove": "Poista",
       "enable": "Ota käyttöön",
       "disable": "Poista käytöstä",
