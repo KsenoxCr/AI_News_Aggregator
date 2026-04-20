@@ -101,8 +101,10 @@ type ValidateAPIKeyResult =
 
 export interface AgentAdapter {
   endpoint: AgentEndpoint;
+  _provider: string;
   _model: string;
   _apiKey: string;
+  get provider(): string;
   get model(): string;
   get apiKey(): string;
   rateLimits: RateLimits | null;
@@ -133,8 +135,6 @@ async function sendWithRetry<T>(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     const res = await fetch(input);
     if (res.status === "failure") continue;
-
-    console.log(res.response.content);
 
     let parsed;
     try {
@@ -178,8 +178,12 @@ function ParseAnthropicReset(s: string | null): number {
 
 export const OAIAdapter: AgentAdapter = {
   endpoint: AGENT.OpenAI.endpoint,
+  _provider: "",
   _model: "",
   _apiKey: "",
+  get provider() {
+    return this._provider;
+  },
   get model() {
     return this._model;
   },
@@ -209,6 +213,7 @@ export const OAIAdapter: AgentAdapter = {
   ): Promise<ValidateAPIKeyResult> {
     const result = await this.validateAPIKey(apiKey);
     if (result.status === "success") {
+      this._provider = "OpenAI";
       this._apiKey = apiKey;
       this._model = model;
     }
@@ -265,8 +270,12 @@ export const OAIAdapter: AgentAdapter = {
 
 export const AnthropicAdapter: AgentAdapter = {
   endpoint: AGENT.Anthropic.endpoint,
+  _provider: "",
   _model: "",
   _apiKey: "",
+  get provider() {
+    return this._provider;
+  },
   get model() {
     return this._model;
   },
@@ -298,6 +307,7 @@ export const AnthropicAdapter: AgentAdapter = {
   ): Promise<ValidateAPIKeyResult> {
     const result = await this.validateAPIKey(apiKey);
     if (result.status === "success") {
+      this._provider = "Anthropic";
       this._apiKey = apiKey;
       this._model = model;
     }
