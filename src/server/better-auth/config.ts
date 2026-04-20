@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { betterAuth } from "better-auth";
+import { hashKDF, encrypt } from "~/lib/utils/crypto";
 import { getIp } from "better-auth/api";
 import { magicLink } from "better-auth/plugins";
 import { Resend } from "resend";
@@ -127,6 +128,7 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
+          const mk = await hashKDF(process.env.CRYPTO_SECRET!);
           const sources = DEFAULT.sources.map((s) => ({
             id: randomUUID(),
             slug: s.slug,
@@ -152,7 +154,7 @@ export const auth = betterAuth({
                 id: randomUUID(),
                 slug: "groq-free",
                 provider: "Groq",
-                api_key: process.env.GROQ_FREE_API_KEY!,
+                api_key: encrypt(mk, process.env.GROQ_FREE_API_KEY!),
                 model: AGENT.Groq.supported_models[0],
                 enabled: 0,
                 user_id: user.id,

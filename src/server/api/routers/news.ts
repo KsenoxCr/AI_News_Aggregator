@@ -18,10 +18,7 @@ import {
   ExtractUnusedArticles,
   GenerateDigests,
 } from "~/lib/feed";
-import type {
-  ArticleWithCategories,
-  Source,
-} from "~/server/db/types";
+import type { ArticleWithCategories, Source } from "~/server/db/types";
 import type { PrevDigest } from "~/lib/types/pipeline";
 
 // FIX: OOM (need drastic reducement of space Big-O)
@@ -185,7 +182,11 @@ export const newsRouter = createTRPCRouter({
       let unclassified: ArticleWithCategories[];
 
       if (cached.length === 0) {
-        if (fetchedArray.length === 0) return;
+        if (fetchedArray.length === 0)
+          return yield {
+            status: "success" as const,
+            info: ctx.t("success.feed.noNewArticles"),
+          };
 
         await db
           .insertInto("cached_article")
@@ -232,60 +233,67 @@ export const newsRouter = createTRPCRouter({
       const agentAdapter = configured.adapter;
 
       if (signal?.aborted) return;
-      yield {
-        status: "success" as const,
-        info: ctx.t("success.feed.classifyingArticles"),
-      };
 
-      const result = await ClassifyArticles(agentAdapter, ctx.t, unclassified);
+      if (unclassified.length > 0) {
+        yield {
+          status: "success" as const,
+          info: ctx.t("success.feed.classifyingArticles"),
+        };
 
-      if (result.status === "failure") {
-        return yield { status: result.status, error: result.error };
-      }
+        const result = await ClassifyArticles(
+          agentAdapter,
+          ctx.t,
+          unclassified,
+        );
 
-      if (result.classified.length > 0) {
-        unclassified.forEach((article) => {
-          const classifiedArticle = result.classified.find(
-            (a) => a.article_id === article.id,
+        if (result.status === "failure") {
+          return yield { status: result.status, error: result.error };
+        }
+
+        if (result.classified.length > 0) {
+          unclassified.forEach((article) => {
+            const classifiedArticle = result.classified.find(
+              (a) => a.article_id === article.id,
+            );
+            if (classifiedArticle?.categories) {
+              classified.push({
+                ...article,
+                categories: classifiedArticle.categories,
+              });
+            }
+          });
+
+          const categories = result.classified.flatMap(
+            (article) =>
+              article.categories?.map((category) => ({
+                article_id: article.article_id,
+                category,
+              })) ?? [],
           );
-          if (classifiedArticle?.categories) {
-            classified.push({
-              ...article,
-              categories: classifiedArticle.categories,
-            });
-          }
-        });
 
-        const categories = result.classified.flatMap(
-          (article) =>
-            article.categories?.map((category) => ({
-              article_id: article.article_id,
-              category,
-            })) ?? [],
-        );
+          const expectedCategoryCount = result.classified.reduce(
+            (sum, a) => sum + (a.categories?.length ?? 0),
+            0,
+          );
+          assert(
+            categories.length === expectedCategoryCount,
+            `[generateFeed] categories array length (${categories.length}) does not match sum of cArticle.categories lengths (${expectedCategoryCount})`,
+          );
+          assert(
+            categories.every(
+              (c) =>
+                typeof c.article_id === "string" &&
+                typeof c.category === "string",
+            ),
+            "[generateFeed] malformed entry in categories array before DB insert",
+          );
 
-        const expectedCategoryCount = result.classified.reduce(
-          (sum, a) => sum + (a.categories?.length ?? 0),
-          0,
-        );
-        assert(
-          categories.length === expectedCategoryCount,
-          `[generateFeed] categories array length (${categories.length}) does not match sum of cArticle.categories lengths (${expectedCategoryCount})`,
-        );
-        assert(
-          categories.every(
-            (c) =>
-              typeof c.article_id === "string" &&
-              typeof c.category === "string",
-          ),
-          "[generateFeed] malformed entry in categories array before DB insert",
-        );
-
-        await db
-          .insertInto("article_category")
-          .ignore()
-          .values(categories)
-          .execute();
+          await db
+            .insertInto("article_category")
+            .ignore()
+            .values(categories)
+            .execute();
+        }
       }
 
       if (classified.length === 0) {
