@@ -1,7 +1,3 @@
-"use client";
-
-import { DigestProvider } from "./_components/digest-context";
-
 export default function FeedLayout({
   children,
   modal,
@@ -10,9 +6,9 @@ export default function FeedLayout({
   modal: React.ReactNode;
 }) {
   return (
-    <DigestProvider>
+    <>
       {children}
       {modal}
-    </DigestProvider>
+    </>
   );
 }
