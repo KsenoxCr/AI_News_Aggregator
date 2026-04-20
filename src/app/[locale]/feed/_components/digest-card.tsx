@@ -1,6 +1,7 @@
 "use client";
 
 import { type Dispatch, type SetStateAction } from "react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "~/lib/i18n/routing";
 import { Typography } from "../../_components/typography";
 import { Spinner } from "~/components/ui/spinner";
@@ -15,18 +16,19 @@ export function DigestCard({
   digest: Digest;
   setSelectedDigest: Dispatch<SetStateAction<Digest | null>>;
 }) {
+  const t = useTranslations("feed");
   const router = useRouter();
   const { loadingDigest, setLoadingDigest } = useDigestContext();
 
   const openModal = () => {
     setSelectedDigest(digest);
     setLoadingDigest(digest);
-    router.push("/feed/digests/open");
+    router.push(`/digests/${digest.digest_id}`);
   };
 
   return (
     <div
-      className="bg-card border-border rounded-xl border p-5"
+      className="bg-card border-border cursor-pointer rounded-xl border p-5"
       onClick={() => {
         if (window.matchMedia("(pointer: fine)").matches) openModal();
       }}
@@ -44,7 +46,7 @@ export function DigestCard({
         {/*   {digest.digest} */}
         {/* </Typography> */}
         <Typography variant="body-sm" color="muted">
-          Generated at {digest.updated_at.toLocaleDateString()}
+          {t("generatedAt", { date: digest.updated_at.toLocaleDateString() })}
         </Typography>
         <div className="my-1 hidden w-full items-center justify-center md:flex">
           {loadingDigest === digest ? (
@@ -56,7 +58,7 @@ export function DigestCard({
               className="text-primary"
               onClick={() => openModal()}
             >
-              Summary
+              {t("summary")}
             </Typography>
           )}
         </div>

@@ -2,6 +2,7 @@
 
 import { ArrowLeft, LogOut, Menu, Settings } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   Drawer,
   DrawerClose,
@@ -14,6 +15,7 @@ import { authClient } from "~/server/better-auth/client";
 import { useRouter } from "~/lib/i18n/routing";
 
 export function Header() {
+  const t = useTranslations("feed");
   const router = useRouter();
   const { data: session } = authClient.useSession();
 
@@ -27,32 +29,32 @@ export function Header() {
       <div className="relative flex items-center">
         <Drawer direction="left">
           <DrawerTrigger asChild>
-            <button className="text-muted-foreground">
+            <button className="cursor-pointer text-muted-foreground">
               <Menu className="size-8" />
             </button>
           </DrawerTrigger>
           <DrawerContent className="p-0 before:inset-0 before:rounded-none">
             <div className="bg-popover flex h-screen flex-col gap-1 p-4">
               <DrawerClose asChild>
-                <button className="text-muted-foreground mb-2 self-start">
+                <button className="cursor-pointer text-muted-foreground mb-2 self-start">
                   <ArrowLeft className="size-8" />
                 </button>
               </DrawerClose>
               <DrawerClose asChild>
                 <Link
                   href="/settings"
-                  className="text-foreground hover:bg-muted flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium"
+                  className="cursor-pointer text-foreground hover:bg-muted flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium"
                 >
                   <Settings className="size-4 opacity-60" />
-                  Settings
+                  {t("settings")}
                 </Link>
               </DrawerClose>
               <button
                 onClick={handleLogout}
-                className="text-foreground hover:bg-muted flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium"
+                className="cursor-pointer text-foreground hover:bg-muted flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium"
               >
                 <LogOut className="size-4 opacity-60" />
-                Log out
+                {t("logOut")}
               </button>
             </div>
           </DrawerContent>

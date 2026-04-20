@@ -11,14 +11,13 @@ interface ErrorPageProps {
 }
 
 export default function ErrorPage({ error, reset }: ErrorPageProps) {
+  const t = useTranslations("error");
   const searchParams = useSearchParams();
   const search = searchParams.get("search");
 
-  // TODO: Translate
-
   const err = search?.match(/^error=.*$/)
     ? search.substring(search.indexOf("=") + 1)
-    : "Something went wrong";
+    : t("somethingWentWrong");
 
   return (
     <main className="flex min-h-svh flex-col items-center justify-center px-6">
@@ -34,7 +33,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
           )}
         </div>
         <Button onClick={reset} className="w-full">
-          Try again
+          {t("tryAgain")}
         </Button>
       </div>
     </main>
