@@ -8,19 +8,23 @@ import { Input } from "~/components/ui/input";
 import { Typography } from "./typography";
 import { EmailSchemaFactory } from "~/lib/validators/user";
 import { authClient } from "~/server/better-auth/client";
+import { Spinner } from "~/components/ui/spinner";
 
 export function LoginForm() {
   const [sentEmail, setSentEmail] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
   const t = useTranslations();
 
   const login = async (formData: FormData) => {
+    setLoading(true);
+
     const entry = String(formData.get("email"));
 
-    const schema = EmailSchemaFactory(t);
-    const result = schema.safeParse(entry);
+    const result = EmailSchemaFactory(t).safeParse(entry);
 
     if (result.error) {
       toast.error(result.error.errors[0]?.message, { position: "top-center" });
+      setLoading(false);
       return;
     }
 
@@ -30,11 +34,12 @@ export function LoginForm() {
       newUserCallbackURL: "/settings",
     });
 
-    // TODO: Translate
+    if (error) {
+      setLoading(false);
+      throw error;
+    }
 
-    if (!error) {
-      setSentEmail(entry);
-    } else if ((error.code = "RATE_LIMIT_EXCEEDED")) toast.error(error.message);
+    setSentEmail(entry);
   };
 
   if (sentEmail) {
@@ -60,7 +65,11 @@ export function LoginForm() {
         placeholder={t("landing.login.emailPlaceholder")}
       />
       <Button size="lg" type="submit" className="w-full">
-        {t("landing.login.submitButton")}
+        {loading ? (
+          <Spinner className="size-4" />
+        ) : (
+          t("landing.login.submitButton")
+        )}
       </Button>
       <Typography variant="body-sm" color="muted" className="text-center">
         {t("landing.login.description")}
