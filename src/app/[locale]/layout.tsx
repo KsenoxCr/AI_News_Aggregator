@@ -16,7 +16,7 @@ import { BRAND } from "~/config/business";
 export const metadata: Metadata = {
   title: BRAND.appName,
   description: BRAND.description,
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
+  icons: [{ rel: "icon", url: "/favicon.svg", type: "image/svg+xml" }],
 };
 
 const figtree = Figtree({ subsets: ["latin"], variable: "--font-sans" });
