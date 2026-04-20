@@ -1,3 +1,5 @@
+import { parseRssFeed, parseAtomFeed } from "feedsmith";
+import { type FeedFormat, FEED_FORMAT } from "~/config/business";
 import type { RouterOutputs } from "~/trpc/react";
 
 type DbCategory =
@@ -57,4 +59,25 @@ export function agentsDelta(agents: AgentState[], dbAgents: DbAgent[]) {
       )
       .map((a) => a.id!),
   };
+}
+
+export function validateFeed(
+  xml: string,
+  format: FeedFormat,
+): { status: "success" } | { status: "failure"; error: string } {
+  try {
+    switch (format) {
+      case FEED_FORMAT.RSS:
+        parseRssFeed(xml);
+        break;
+      case FEED_FORMAT.ATOM:
+        parseAtomFeed(xml);
+        break;
+      default:
+        throw new Error(`Unhandled feed format: ${format satisfies never}`);
+    }
+    return { status: "success" };
+  } catch (err: any) {
+    return { status: "failure", error: "errors.feed.invalidFormat" };
+  }
 }

@@ -15,7 +15,8 @@ import type { AgentProvider } from "~/config/business";
 import { FEED_FORMAT } from "~/config/business";
 import { AgentAdapterFactory } from "~/lib/factories/agent";
 import { encrypt, decrypt } from "~/lib/utils/crypto";
-import { fetchFeedXml, validateFeed } from "~/lib/utils/feed";
+import { fetchFeedXml } from "~/lib/utils/feed";
+import { validateFeed } from "~/lib/utils/settings";
 
 export const settingsRouter = createTRPCRouter({
   // TODO: coalesh all schema, validated lines to just validated by method chaining

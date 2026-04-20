@@ -1,6 +1,3 @@
-import { parseRssFeed, parseAtomFeed } from "feedsmith";
-import { FEED_FORMAT, type FeedFormat } from "~/config/business";
-
 export async function fetchFeedXml(
   url: string,
   etag?: string | null,
@@ -18,7 +15,7 @@ export async function fetchFeedXml(
     },
   });
 
-  // TODO: Intricate response status handling
+  // TODO: Intricate, closer to exhaustive response status handling
 
   if (response.status === 304)
     return { status: "success", statusCode: 304, xml: "", etag: null };
@@ -47,31 +44,8 @@ export function PushToPages<T>(
   return result;
 }
 
-export function scrollToCenter(container: HTMLElement | null, btn: HTMLElement): void {
-  if (!container) return;
-  container.scrollTo({
-    left: btn.offsetLeft - container.clientWidth / 2 + btn.clientWidth / 2,
-    behavior: "smooth",
-  });
-}
-
-export function validateFeed(
-  xml: string,
-  format: FeedFormat,
-): { status: "success" } | { status: "failure"; error: string } {
-  try {
-    switch (format) {
-      case FEED_FORMAT.RSS:
-        parseRssFeed(xml);
-        break;
-      case FEED_FORMAT.ATOM:
-        parseAtomFeed(xml);
-        break;
-      default:
-        throw new Error(`Unhandled feed format: ${format satisfies never}`);
-    }
-    return { status: "success" };
-  } catch (err: any) {
-    return { status: "failure", error: "errors.feed.invalidFormat" };
-  }
+export function StripCategories<T extends { categories: unknown }>(
+  articles: T[],
+): Omit<T, "categories">[] {
+  return articles.map(({ categories: _categories, ...rest }) => rest as Omit<T, "categories">);
 }
