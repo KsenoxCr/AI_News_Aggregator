@@ -14,20 +14,24 @@ import { FEED } from "~/config/business";
 import { PushToPages } from "~/lib/utils/feed";
 import { type Digest } from "~/lib/types/feed";
 import { useDigestContext } from "./_components/digest-context";
+import { authClient } from "~/server/better-auth/client";
+import { Unauthorized } from "../_components/unauthorized";
 
-// TODO: DigestModal
-// FIX: OOM
+// TODO: DigestModal RevisionRoadmap
 
 // Out of scope for now:
 // TODO: ToolBar: CollationOrderPicker + collation logic
 // TODO: fzf search
 
 export default function FeedPage() {
+  const { data: session, isPending: sessionPending } = authClient.useSession();
   const { setSelectedDigest } = useDigestContext();
+
   const [categories, setCategories] = useState<Set<string>>(new Set());
   const [activeCategories, setActiveCategories] = useState<Set<string>>(
     new Set(),
   );
+
   const [pageSize, setPageSize] = useState<number>(FEED.paging[0]);
   const [calendarDate, setCalendarDate] = useState<Date | undefined>();
   const [prevDate, setPrevDate] = useState<Date | undefined>();
@@ -44,10 +48,16 @@ export default function FeedPage() {
   const [today] = useState<Date>(() => new Date());
   const [scrollTop, setScrollTop] = useState(false);
 
-  const { data: categoriesData } = api.settings.getCategories.useQuery();
-  const { data: confirmData } = api.settings.confirmRequired.useQuery();
+  const { data: categoriesData } = api.settings.getCategories.useQuery(
+    undefined,
+    { enabled: !sessionPending && !!session },
+  );
+  const { data: confirmData } = api.settings.confirmRequired.useQuery(
+    undefined,
+    { enabled: !sessionPending && !!session },
+  );
   api.news.generateFeed.useSubscription(effectiveDate ?? today, {
-    enabled: settingsConfirmed,
+    enabled: settingsConfirmed && !!session,
     onData: (data) => setFeedData(data),
   });
 
@@ -103,7 +113,7 @@ export default function FeedPage() {
     setDigestPages((prev) => PushToPages([], prev.flat(), pageSize));
   }, [pageSize]);
 
-  const showFeed = () => {
+  const showContent = () => {
     const anyDigests = digestPages.length > 0;
     if (anyDigests && !infoMessage)
       return (
@@ -139,6 +149,9 @@ export default function FeedPage() {
     );
   };
 
+  if (sessionPending) return <div className="flex min-h-svh items-center justify-center"><Spinner /></div>;
+  if (!session) return <Unauthorized />;
+
   return (
     <div className="bg-background min-h-screen">
       <Header />
@@ -154,13 +167,13 @@ export default function FeedPage() {
         setDigestPages={setDigestPages}
       />
 
-      {showFeed()}
+      {showContent()}
       <PagePicker
         pageCount={digestPages.length}
         page={page}
         setPage={setPage}
       />
-      <ScrollArrow scrollTop={scrollTop} />
+      <ScrollArrow scrollTop={scrollTop} disable={digestPages.length === 0} />
     </div>
   );
 }

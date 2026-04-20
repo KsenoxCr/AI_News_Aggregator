@@ -21,14 +21,20 @@ import { SourcesSettings } from "./_components/sources";
 import { AIModelSettings, type AgentState } from "./_components/ai-model";
 import { PreferencesSettings } from "./_components/preferences";
 import { api } from "~/trpc/react";
+import { authClient } from "~/server/better-auth/client";
+import { Unauthorized } from "../_components/unauthorized";
+import { Spinner } from "~/components/ui/spinner";
 
 const TOAST_POS = { position: "top-center" } as const;
 
 export default function SettingsPage() {
+  const { data: session, isPending: sessionPending } = authClient.useSession();
   const t = useTranslations();
   const router = useRouter();
   const utils = api.useUtils();
-  const { data: dbSettings } = api.settings.load.useQuery();
+  const { data: dbSettings } = api.settings.load.useQuery(undefined, {
+    enabled: !sessionPending && !!session,
+  });
 
   const [selectedLocale, setSelectedLocale] = useState<Locale>(
     routing.defaultLocale,
@@ -118,6 +124,14 @@ export default function SettingsPage() {
   };
 
   const categories = dbSettings?.preferences.categories ?? [];
+
+  if (sessionPending)
+    return (
+      <div className="flex min-h-svh items-center justify-center">
+        <Spinner />
+      </div>
+    );
+  if (!session) return <Unauthorized />;
 
   return (
     <div className="bg-background min-h-screen">
