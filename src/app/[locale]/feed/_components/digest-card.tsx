@@ -42,9 +42,6 @@ export function DigestCard({
         <Typography as="h3" variant="heading-3">
           {digest.title}
         </Typography>
-        {/* <Typography variant="body-sm" color="muted"> */}
-        {/*   {digest.digest} */}
-        {/* </Typography> */}
         <Typography variant="body-sm" color="muted">
           {t("generatedAt", { date: digest.updated_at.toLocaleDateString() })}
         </Typography>
