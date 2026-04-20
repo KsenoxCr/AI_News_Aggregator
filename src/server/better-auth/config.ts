@@ -5,7 +5,7 @@ import { magicLink } from "better-auth/plugins";
 import { Resend } from "resend";
 import { MagicLinkEmail } from "~/emails/magic-link";
 import { db, dialect } from "../db/db";
-import { AUTH, BRAND, DEFAULT } from "~/config/business";
+import { AGENT, AUTH, BRAND, DEFAULT } from "~/config/business";
 import { ChangeEmailEmail } from "~/emails/email-change";
 import { NotifyChangeEmail } from "~/emails/notify-change";
 
@@ -146,6 +146,18 @@ export const auth = betterAuth({
 
           await Promise.all([
             db.insertInto("source").values(sources).execute(),
+            db
+              .insertInto("agent")
+              .values({
+                id: randomUUID(),
+                slug: "groq-free",
+                provider: "Groq",
+                api_key: process.env.GROQ_FREE_API_KEY!,
+                model: AGENT.Groq.supported_models[0],
+                enabled: 0,
+                user_id: user.id,
+              })
+              .execute(),
             defaultCategories.length > 0
               ? db
                   .insertInto("user_category")

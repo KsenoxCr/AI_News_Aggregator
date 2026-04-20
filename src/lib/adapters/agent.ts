@@ -268,6 +268,104 @@ export const OAIAdapter: AgentAdapter = {
   },
 };
 
+export const GroqAdapter: AgentAdapter = {
+  endpoint: AGENT.Groq.endpoint,
+  _provider: "",
+  _model: "",
+  _apiKey: "",
+  get provider() {
+    return this._provider;
+  },
+  get model() {
+    return this._model;
+  },
+  get apiKey() {
+    return this._apiKey;
+  },
+  rateLimits: null as RateLimits | null,
+
+  async validateAPIKey(_apiKey: string): Promise<ValidateAPIKeyResult> {
+    try {
+      const client = new OpenAI({
+        apiKey: process.env.GROQ_FREE_API_KEY,
+        baseURL: "https://api.groq.com/openai/v1",
+      });
+      const page = await client.models.list();
+      return { status: "success", models: page.data.map((m) => m.id) };
+    } catch {
+      return {
+        status: "failure",
+        error: { code: "UNAUTHORIZED", message: "errors.api.invalidApiKey" },
+      };
+    }
+  },
+  async listModels(): Promise<ValidateAPIKeyResult> {
+    return this.validateAPIKey("");
+  },
+  async configure(
+    _apiKey: string,
+    model: string,
+  ): Promise<ValidateAPIKeyResult> {
+    const result = await this.validateAPIKey("");
+    if (result.status === "success") {
+      this._provider = "Groq";
+      this._apiKey = "";
+      this._model = model;
+    }
+    return result;
+  },
+  async sendRequest<T>(
+    input: AgentInput,
+    outputSchema: ZodType<T>,
+    maxRetries = 1,
+  ): Promise<SendRequestResult<T>> {
+    const fetch = async (i: AgentInput): Promise<ParseResponseResult> => {
+      const client = new OpenAI({
+        apiKey: process.env.GROQ_FREE_API_KEY,
+        baseURL: "https://api.groq.com/openai/v1",
+      });
+      const oaiInput = i as OAIInput;
+      const { data: res, response } = await client.chat.completions
+        .create({
+          model: oaiInput.model,
+          messages: oaiInput.messages,
+          response_format: zodResponseFormat(outputSchema, "response"),
+        })
+        .withResponse();
+      const content = res.choices[0]?.message.content;
+      if (!content) {
+        return {
+          status: "failure",
+          error: {
+            code: "EMPTY_RESPONSE",
+            message: "validation.agent.content.schemaMismatch",
+          },
+        };
+      }
+      this.rateLimits = {
+        RPI: parseInt(
+          response.headers.get("x-ratelimit-limit-requests") ?? "0",
+        ),
+        TPI: parseInt(response.headers.get("x-ratelimit-limit-tokens") ?? "0"),
+        requestsRemaining: parseInt(
+          response.headers.get("x-ratelimit-remaining-requests") ?? "0",
+        ),
+        tokensRemaining: parseInt(
+          response.headers.get("x-ratelimit-remaining-tokens") ?? "0",
+        ),
+        RR: ParseOAIInterval(
+          response.headers.get("x-ratelimit-reset-requests") ?? "0s",
+        ),
+        TR: ParseOAIInterval(
+          response.headers.get("x-ratelimit-reset-tokens") ?? "0s",
+        ),
+      };
+      return { status: "success", response: { endpointType: "oai", content } };
+    };
+    return sendWithRetry(fetch, input, outputSchema, maxRetries);
+  },
+};
+
 export const AnthropicAdapter: AgentAdapter = {
   endpoint: AGENT.Anthropic.endpoint,
   _provider: "",
@@ -283,8 +381,6 @@ export const AnthropicAdapter: AgentAdapter = {
     return this._apiKey;
   },
   rateLimits: null as RateLimits | null,
-
-  // TODO: Return only T2T models
 
   async validateAPIKey(apiKey: string): Promise<ValidateAPIKeyResult> {
     try {

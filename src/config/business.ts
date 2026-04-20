@@ -63,6 +63,10 @@ export const AGENT = {
       "claude-opus-4-20250514",
     ],
   },
+  Groq: {
+    endpoint: "https://api.groq.com/openai/v1/chat/completions",
+    supported_models: ["meta-llama/llama-4-scout-17b-16e-instruct"],
+  },
 } as const;
 
 export const DIGEST = {

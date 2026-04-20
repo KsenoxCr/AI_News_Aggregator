@@ -50,14 +50,9 @@ export const settingsRouter = createTRPCRouter({
 
     const userCategorySet = new Set(userCategories.map((uc) => uc.category));
 
-    // FIX: decryption
-
     const agentsWithModels = await Promise.all(
       agents.map(async (a) => {
-        console.log("enc:" + a.key);
-        console.log("decr:" + decrypt(ctx.mk, a.key));
-
-        a.key = decrypt(ctx.mk, a.key);
+        a.key = a.provider === "Groq" ? "" : decrypt(ctx.mk, a.key);
 
         const { adapter } = await AgentAdapterFactory(
           a.provider as AgentProvider,

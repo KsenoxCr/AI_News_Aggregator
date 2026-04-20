@@ -2,6 +2,7 @@ import { AGENT } from "~/config/business";
 import type { AgentProvider } from "~/config/business";
 import {
   AnthropicAdapter,
+  GroqAdapter,
   OAIAdapter,
   type AgentAdapter,
   type AgentInput,
@@ -26,6 +27,9 @@ export async function AgentAdapterFactory(
       break;
     case "Anthropic":
       adapter = AnthropicAdapter;
+      break;
+    case "Groq":
+      adapter = GroqAdapter;
       break;
     default:
       throw new Error(`Unhandled provider: ${provider}`);
@@ -72,6 +76,21 @@ export function AgentInputFactory(
           },
         ],
         max_tokens: 1024, // TODO: Fine-tune
+      };
+    case AGENT.Groq.endpoint:
+      return {
+        endpoint,
+        model,
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt,
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
       };
     default:
       throw new Error(`Unhandled case: ${endpoint}`);

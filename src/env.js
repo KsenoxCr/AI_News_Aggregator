@@ -16,9 +16,10 @@ export const env = createEnv({
     CRYPTO_SECRET: z.string(),
     COMPANY_EMAIL: z.string().email(),
     RESEND_API_KEY: z.string(),
+    GROQ_FREE_API_KEY: z.string(),
     NODE_ENV: z
       .enum(["development", "test", "production"])
-      .default("production"),
+      .default("development"),
   },
 
   /**
@@ -44,6 +45,7 @@ export const env = createEnv({
     CRYPTO_SECRET: process.env.CRYPTO_SECRET,
     COMPANY_EMAIL: process.env.COMPANY_EMAIL,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
+    GROQ_FREE_API_KEY: process.env.GROQ_FREE_API_KEY,
     NODE_ENV: process.env.NODE_ENV,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   },
