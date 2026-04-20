@@ -31,6 +31,7 @@ export function PreferencesSettings({
   setFreeform,
 }: Props) {
   const t = useTranslations();
+  const tc = useTranslations("categories");
 
   const categories = dbSettings?.preferences.categories ?? [];
   const primaryCategories = categories.slice(0, 4);
@@ -53,7 +54,7 @@ export function PreferencesSettings({
               {primaryCategories.map((c) => (
                 <CategoryChip
                   key={c.category}
-                  label={c.category}
+                  label={tc(c.category)}
                   active={settingsCategories.get(c.category) ?? false}
                   onClick={() => toggleCategory(c.category)}
                 />
@@ -76,7 +77,7 @@ export function PreferencesSettings({
                     {moreCategories.map((c) => (
                       <CategoryChip
                         key={c.category}
-                        label={c.category}
+                        label={tc(c.category)}
                         active={settingsCategories.get(c.category) ?? false}
                         onClick={() => toggleCategory(c.category)}
                       />
@@ -95,8 +96,10 @@ export function PreferencesSettings({
           <div className="relative">
             <textarea
               value={freeform}
-              onChange={(e) => setFreeform(e.target.value)}
-              placeholder={t("settings.preferences.freeformPlaceholder")}
+              disabled
+              // onChange={(e) => setFreeform(e.target.value)}
+              // placeholder={t("settings.preferences.freeformPlaceholder")}
+              placeholder={"Not implemented yet"}
               className="border-input bg-input/30 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 h-24 w-full resize-none rounded-xl border px-3 py-2 text-sm transition-colors outline-none focus-visible:ring-[3px]"
             />
             <Typography

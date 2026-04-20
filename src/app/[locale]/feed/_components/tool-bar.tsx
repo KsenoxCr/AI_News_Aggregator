@@ -1,7 +1,7 @@
 "use client";
 
 import { type Dispatch, type SetStateAction } from "react";
-import { slugToLabel } from "~/lib/utils/ui";
+import { useTranslations } from "next-intl";
 import { cn } from "~/lib/utils";
 import { type Digest } from "~/lib/types/feed";
 import { CategoryChip } from "../../_components/category-chip";
@@ -27,6 +27,7 @@ export function ToolBar({
   setCalendarDate: (d: Date | undefined) => void;
   setDigestPages: Dispatch<SetStateAction<Digest[][]>>;
 }) {
+  const t = useTranslations("categories");
   return (
     <div className="border-border bg-background/80 sticky top-0 z-10 border-b px-4 py-3 backdrop-blur-sm md:sticky md:top-14.25 md:px-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -35,7 +36,7 @@ export function ToolBar({
             [...categories].map((slug) => (
               <CategoryChip
                 key={slug}
-                label={slugToLabel(slug)}
+                label={t(slug)}
                 active={activeCategories.has(slug)}
                 onClick={() => {
                   const next = new Set(activeCategories);
