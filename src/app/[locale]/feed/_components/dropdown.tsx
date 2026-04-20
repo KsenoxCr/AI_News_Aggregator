@@ -25,7 +25,7 @@ export function Dropdown({
             close();
           }}
           className={cn(
-            "text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-2 px-3 py-1.5 text-xs font-medium transition-colors",
+            "cursor-pointer text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-2 px-3 py-1.5 text-xs font-medium transition-colors",
             i < options.length - 1 && "border-border border-b",
           )}
         >

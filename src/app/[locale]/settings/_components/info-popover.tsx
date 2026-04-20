@@ -17,7 +17,7 @@ export function InfoPopover({ t }: { t: ReturnType<typeof useTranslations> }) {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors"
           onMouseEnter={() => {
             if (isFinePointer()) setOpen(true);
           }}

@@ -23,7 +23,7 @@ export function CategoryChip({
     <button
       onClick={onClick}
       className={cn(
-        "shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors",
+        "cursor-pointer shrink-0 rounded-full px-3 py-1 text-xs font-medium transition-colors",
         active
           ? "bg-primary text-primary-foreground"
           : "bg-muted text-muted-foreground hover:bg-muted/80",
