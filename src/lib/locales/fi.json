@@ -31,10 +31,6 @@
       "emailEmpty": "Sähköpostiosoite vaaditaan",
       "emailInvalid": "Kirjoita kelvollinen sähköpostiosoite",
       "preferencesTooLong": "Mieltymykset saavat olla enintään {max} merkkiä pitkät"
-    },
-    "category": {
-      "slugRequired": "Kategoria vaaditaan",
-      "slugTooLong": "Kategorian tunniste saa olla enintään {max} merkkiä pitkä"
     }
   },
   "landing": {
@@ -64,7 +60,6 @@
       "apiKeyPlaceholder": "API-avain",
       "add": "Lisää",
       "models": "Mallit",
-      "waitingForKey": "Odotetaan API-avainta...",
       "noModelsAvailable": "Malleja ei saatavilla",
       "remove": "Poista",
       "enable": "Ota käyttöön",
@@ -95,12 +90,10 @@
     }
   },
   "errors": {
+    "unauthorized": "Et ole kirjautunut sisään.",
     "conflicts": {
-      "agentNameExists": "Nimi on jo käytössä",
-      "agentUrlExists": "URL-osoite on jo käytössä",
       "sourceNameExists": "Nimi on jo käytössä",
-      "sourceUrlExists": "URL-osoite on jo käytössä",
-      "categoryExists": "Kategoria on jo olemassa"
+      "sourceUrlExists": "URL-osoite on jo käytössä"
     },
     "source": {
       "notFound": "Lähdettä ei löydy"
@@ -121,5 +114,16 @@
       "serverError": "OpenAI-palvelun virhe",
       "serviceUnavailable": "OpenAI-palvelu ei ole saatavilla"
     }
+  },
+  "feed": {
+    "generatedAt": "Luotu {date}",
+    "summary": "Tiivistelmä",
+    "sources": "Lähteet",
+    "logOut": "Kirjaudu ulos",
+    "settings": "Asetukset"
+  },
+  "error": {
+    "somethingWentWrong": "Jotain meni pieleen",
+    "tryAgain": "Yritä uudelleen"
   }
 }

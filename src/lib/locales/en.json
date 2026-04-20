@@ -30,12 +30,7 @@
     "user": {
       "emailEmpty": "Email address is required",
       "emailInvalid": "Please enter a valid email address",
-      "preferencesEmpty": "Preferences cannot be empty",
       "preferencesTooLong": "Preferences must be {max} characters or less"
-    },
-    "category": {
-      "slugRequired": "Category is required",
-      "slugTooLong": "Category slug must be {max} characters or less"
     }
   },
   "landing": {
@@ -65,7 +60,6 @@
       "apiKeyPlaceholder": "API Key",
       "add": "Add",
       "models": "Models",
-      "waitingForKey": "Waiting for API key...",
       "noModelsAvailable": "No models available",
       "remove": "Remove",
       "enable": "Enable",
@@ -96,12 +90,10 @@
     }
   },
   "errors": {
+    "unauthorized": "You are not logged in.",
     "conflicts": {
-      "agentNameExists": "Name already in use",
-      "agentUrlExists": "URL already in use",
       "sourceNameExists": "Name already in use",
-      "sourceUrlExists": "URL already in use",
-      "categoryExists": "Category already exists"
+      "sourceUrlExists": "URL already in use"
     },
     "source": {
       "notFound": "Source not found"
@@ -122,5 +114,16 @@
       "serverError": "OpenAI service error",
       "serviceUnavailable": "OpenAI service unavailable"
     }
+  },
+  "feed": {
+    "generatedAt": "Generated {date}",
+    "summary": "Summary",
+    "sources": "Sources",
+    "logOut": "Log out",
+    "settings": "Settings"
+  },
+  "error": {
+    "somethingWentWrong": "Something went wrong",
+    "tryAgain": "Try again"
   }
 }
