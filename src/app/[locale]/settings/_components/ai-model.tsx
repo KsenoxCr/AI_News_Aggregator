@@ -85,11 +85,12 @@ export function AIModelSettings({
   ) => {
     if (!agent || provider !== "Groq") {
       if (isPending) return <Spinner className="size-4" />;
-      return (
-        <Typography variant="body-sm" className="text-muted-foreground">
-          {t("settings.aiModel.waitingForApiKey")}
-        </Typography>
-      );
+      if (!agent)
+        return (
+          <Typography variant="body-sm" className="text-muted-foreground">
+            {t("settings.aiModel.waitingForApiKey")}
+          </Typography>
+        );
     }
 
     const models = agent.models.filter((m) =>
