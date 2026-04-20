@@ -4,6 +4,7 @@ import { Typography } from "./_components/typography";
 import { BRAND } from "~/config/business";
 
 // TODO: Add Guard clause: already logged in -> redirect to feed
+// TODO: locale flag w/dropdown
 
 export default async function LandingPage() {
   const t = await getTranslations();
