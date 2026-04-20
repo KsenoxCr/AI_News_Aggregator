@@ -79,22 +79,16 @@ export function SourceMap({
 
                   return (
                     <li key={r.article.link} className="list-disc">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Typography
-                            variant="body-sm"
-                            color="muted"
-                            className={
-                              isArticleMatch ? undefined : "opacity-30"
-                            }
-                          >
-                            {`${r.article.title} (${r.article.author ? r.article.author + ", " : ""}${formatLocaleDate(new Date(r.article.published_at), locale, timezone || undefined)})`}
-                          </Typography>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" align="start">
-                          {r.article.link}
-                        </TooltipContent>
-                      </Tooltip>
+                      <a
+                        href={r.article.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={isArticleMatch ? "hover:underline" : "opacity-30 hover:underline"}
+                      >
+                        <Typography variant="body-sm" color="muted">
+                          {`${r.article.title} (${r.article.author ? r.article.author + ", " : ""}${formatLocaleDate(new Date(r.article.published_at), locale, timezone || undefined)})`}
+                        </Typography>
+                      </a>
                     </li>
                   );
                 })}

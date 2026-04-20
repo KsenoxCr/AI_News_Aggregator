@@ -9,6 +9,7 @@ import { useDigestContext } from "../../../_components/digest-context";
 import { api } from "~/trpc/react";
 import { AgentTag } from "./_components/agent-tag";
 import { SourceMap } from "./_components/source-map";
+import { CategoryBadge } from "../../../_components/category-badge";
 import type { AgentProvider } from "~/config/business";
 import { Spinner } from "~/components/ui/spinner";
 import type { Digest } from "~/lib/types/feed";
@@ -66,12 +67,7 @@ export default function DigestModal({
 
         <div className="flex flex-wrap gap-1">
           {effectiveDigest?.categories.map((c) => (
-            <span
-              key={c}
-              className="bg-secondary shadow-accent inline-block rounded-full px-3 py-0.5 text-xs font-semibold"
-            >
-              {c}
-            </span>
+            <CategoryBadge key={c} category={c} />
           ))}
         </div>
 
@@ -81,7 +77,9 @@ export default function DigestModal({
 
         {revisionsData?.revisions[0] ? (
           <AgentTag
-            provider={revisionsData.revisions[0].agent.provider as AgentProvider}
+            provider={
+              revisionsData.revisions[0].agent.provider as AgentProvider
+            }
             model={revisionsData.revisions[0].agent.model}
           />
         ) : (
