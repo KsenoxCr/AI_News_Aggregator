@@ -18,6 +18,7 @@ import { authClient } from "~/server/better-auth/client";
 import { Unauthorized } from "../_components/unauthorized";
 
 // TODO: DigestModal RevisionRoadmap
+// TODO: AI Translation option for digests (DigestCard + Modal)
 
 // Out of scope for now:
 // TODO: ToolBar: CollationOrderPicker + collation logic
@@ -149,7 +150,12 @@ export default function FeedPage() {
     );
   };
 
-  if (sessionPending) return <div className="flex min-h-svh items-center justify-center"><Spinner /></div>;
+  if (sessionPending)
+    return (
+      <div className="flex min-h-svh items-center justify-center">
+        <Spinner />
+      </div>
+    );
   if (!session) return <Unauthorized />;
 
   return (

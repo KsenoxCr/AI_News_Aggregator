@@ -59,6 +59,7 @@ const linkOpts = {
 const subscription = httpSubscriptionLink(linkOpts);
 const batch = httpBatchLink(linkOpts);
 
+// TODO: Add non-batch for monotype request
 const link = splitLink({
   condition(op) {
     return op.path === "news.generateFeed";

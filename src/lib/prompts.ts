@@ -1,4 +1,7 @@
-// TODO: Add users freeform preferences int systemPrompts (append or overwrite based on users choice)
+// TODO: Add users freeform preferences int systemPrompts (needs separate LLM call taking the systemPrompt + prompt and reconciling the preferences into it, conserving the logic, only appending possible preferences affecting digest routing or generation decitions)
+// TODO: locale -> language for the digests (agent should translate non-locale text)
+
+// TODO: TRANSLATE_REVISION
 
 export const DIGEST_ROUTING = {
   systemPrompt: `

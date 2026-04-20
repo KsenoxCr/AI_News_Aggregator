@@ -1,3 +1,5 @@
+-- TODO: cronjobs for truncating sessions, cached_articles, news_digests and digest_revisions
+
 CREATE TABLE user (
     id              VARCHAR(36)  PRIMARY KEY,
     name            VARCHAR(255) NOT NULL,
