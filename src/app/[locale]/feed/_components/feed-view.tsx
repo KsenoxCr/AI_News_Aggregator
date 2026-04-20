@@ -13,7 +13,7 @@ export function FeedView({
   digestPages: Digest[][];
   page: number;
   activeCategories: Set<string>;
-  setSelectedDigest: Dispatch<SetStateAction<Digest | null>>;
+  setSelectedDigest: (digest: Digest | null) => void;
 }) {
   return (
     <main className="mx-auto max-w-3xl space-y-3 px-4 pt-5 pb-22 md:px-6">

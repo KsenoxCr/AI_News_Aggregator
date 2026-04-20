@@ -14,7 +14,7 @@ export function DigestCard({
   setSelectedDigest,
 }: {
   digest: Digest;
-  setSelectedDigest: Dispatch<SetStateAction<Digest | null>>;
+  setSelectedDigest: (digest: Digest | null) => void;
 }) {
   const t = useTranslations("feed");
   const router = useRouter();
