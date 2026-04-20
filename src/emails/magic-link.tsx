@@ -45,7 +45,7 @@ export function MagicLinkEmail({ url }: { url: string }) {
             </Heading>
             <Text style={styles.lede}>
               Click the button below to sign in. This link is single-use and
-              expires in <strong>15 minutes</strong>. If you did not request
+              expires in <strong>5 minutes</strong>. If you did not request
               this, you can safely ignore this email.
             </Text>
 
