@@ -33,7 +33,7 @@ export const DigestsIntermediarySchema = z.object({
   routings: z.array(
     z.object({
       article_id: z.string().uuid(),
-      digests: z.array(z.union([z.string().uuid(), z.literal("new")])).min(1),
+      digests: z.array(z.string().min(1)).min(1),
     }),
   ),
 });
