@@ -102,7 +102,9 @@
     },
     "feed": {
       "invalidFormat": "Virheellinen syötemuoto",
-      "noSources": "Lähteitä ei ole määritetty"
+      "noSources": "Lähteitä ei ole määritetty",
+      "noAgent": "Tekoälymallia ei ole määritetty",
+      "internalError": "Sisäinen virhe: {message}"
     },
     "settings": {
       "missing": {

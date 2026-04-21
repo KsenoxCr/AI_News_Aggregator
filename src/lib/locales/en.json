@@ -102,7 +102,9 @@
     },
     "feed": {
       "invalidFormat": "Invalid feed format",
-      "noSources": "No sources configured"
+      "noSources": "No sources configured",
+      "noAgent": "No AI model configured",
+      "internalError": "Internal error: {message}"
     },
     "settings": {
       "missing": {

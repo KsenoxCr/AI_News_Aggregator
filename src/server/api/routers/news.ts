@@ -129,14 +129,27 @@ export const newsRouter = createTRPCRouter({
 
       for (const source of sources) {
         if (signal?.aborted) return;
-        const fetchResult = await FetchFeed(source, input);
+        let fetchResult;
+        try {
+          fetchResult = await FetchFeed(source, input);
+        } catch (err) {
+          console.error(`[generateFeed] source ${source.slug} threw:`, err);
+          yield {
+            status: "error" as const,
+            error: {
+              code: "FETCH_FAILED",
+              message: (err as Error).message,
+            },
+          };
+          continue;
+        }
         console.log(`[generateFeed] source ${source.slug}: fetchResult status=${fetchResult ? (fetchResult.error ? "error" : "ok") : "304"}`);
 
         if (!fetchResult) continue;
 
         if (fetchResult?.error) {
           yield {
-            status: "error",
+            status: "error" as const,
             error: {
               code: "FETCH_FAILED",
               message: fetchResult.error.message,
@@ -180,9 +193,18 @@ export const newsRouter = createTRPCRouter({
         .where("user_id", "=", ctx.session.user.id)
         .where("enabled", "=", 1)
         .select(["id", "provider", "model", "api_key"])
-        .executeTakeFirstOrThrow();
+        .executeTakeFirst();
+      if (!agent)
+        return yield {
+          status: "failure" as const,
+          error: {
+            code: "NOT_FOUND",
+            message: ctx.t("errors.feed.noAgent"),
+          },
+        };
       console.log(`[generateFeed] agent found: provider=${agent.provider} model=${agent.model}`);
 
+      try {
       const classified = [] as ArticleWithCategories[];
       let unclassified: ArticleWithCategories[];
 
@@ -435,6 +457,18 @@ export const newsRouter = createTRPCRouter({
       }
 
       return yield { status: "success" };
+      } catch (err) {
+        console.error("[generateFeed] unhandled error:", err);
+        return yield {
+          status: "failure" as const,
+          error: {
+            code: "INTERNAL_ERROR",
+            message: ctx.t("errors.feed.internalError", {
+              message: (err as Error).message,
+            }),
+          },
+        };
+      }
     }),
   getRevisions: protectedTranslatedProcedure
     .input(z.string())
