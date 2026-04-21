@@ -59,7 +59,13 @@ export default function FeedPage() {
   );
   api.news.generateFeed.useSubscription(effectiveDate ?? today, {
     enabled: settingsConfirmed && !!session,
-    onData: (data) => setFeedData(data),
+    onData: (data) => {
+      console.log("[feed] onData:", JSON.stringify(data));
+      setFeedData(data);
+    },
+    onError: (err) => console.error("[feed] onError:", err),
+    onStarted: () => console.log("[feed] subscription started"),
+    onComplete: () => console.log("[feed] subscription complete"),
   });
 
   useEffect(() => {
@@ -83,6 +89,7 @@ export default function FeedPage() {
 
   useEffect(() => {
     if (!confirmData) return;
+    console.log("[feed] confirmData:", JSON.stringify(confirmData));
     if (confirmData.status === "success") {
       setSettingsConfirmed(true);
     } else {

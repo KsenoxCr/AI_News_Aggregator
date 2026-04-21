@@ -130,6 +130,7 @@ export const newsRouter = createTRPCRouter({
       for (const source of sources) {
         if (signal?.aborted) return;
         const fetchResult = await FetchFeed(source, input);
+        console.log(`[generateFeed] source ${source.slug}: fetchResult status=${fetchResult ? (fetchResult.error ? "error" : "ok") : "304"}`);
 
         if (!fetchResult) continue;
 
@@ -150,6 +151,7 @@ export const newsRouter = createTRPCRouter({
           });
         }
       }
+      console.log(`[generateFeed] fetchedArray.length=${fetchedArray.length}`);
 
       const cached = await db
         .selectFrom("cached_article")
@@ -169,7 +171,9 @@ export const newsRouter = createTRPCRouter({
           "used",
           "category",
         ])
+        .orderBy("cached_article.id")
         .execute();
+      console.log(`[generateFeed] cached rows=${cached.length}`);
 
       const agent = await db
         .selectFrom("agent")
@@ -177,11 +181,13 @@ export const newsRouter = createTRPCRouter({
         .where("enabled", "=", 1)
         .select(["id", "provider", "model", "api_key"])
         .executeTakeFirstOrThrow();
+      console.log(`[generateFeed] agent found: provider=${agent.provider} model=${agent.model}`);
 
       const classified = [] as ArticleWithCategories[];
       let unclassified: ArticleWithCategories[];
 
       if (cached.length === 0) {
+        console.log(`[generateFeed] branch: no cache, fetchedArray=${fetchedArray.length}`);
         if (fetchedArray.length === 0)
           return yield {
             status: "success" as const,
@@ -197,11 +203,13 @@ export const newsRouter = createTRPCRouter({
         unclassified = fetchedArray;
       } else {
         const cachedUnflattened = UnflattenCached(cached);
+        console.log(`[generateFeed] cachedUnflattened=${cachedUnflattened.length}`);
 
         const [cacheMisses, cachedCatz, cachedUncatz] = ExtractUnusedArticles(
           fetchedArray,
           cachedUnflattened,
         );
+        console.log(`[generateFeed] cacheMisses=${cacheMisses!.length} cachedCatz=${cachedCatz!.length} cachedUncatz=${cachedUncatz!.length}`);
 
         if (cacheMisses!.length > 0)
           await db
@@ -215,6 +223,7 @@ export const newsRouter = createTRPCRouter({
 
         cachedCatz?.forEach((article) => classified.push(article));
       }
+      console.log(`[generateFeed] unclassified=${unclassified.length} classified=${classified.length}`);
 
       const configured = await AgentAdapterFactory(
         agent.provider as AgentProvider,
@@ -235,6 +244,7 @@ export const newsRouter = createTRPCRouter({
       if (signal?.aborted) return;
 
       if (unclassified.length > 0) {
+        console.log(`[generateFeed] → ClassifyArticles (${unclassified.length} articles)`);
         yield {
           status: "success" as const,
           info: ctx.t("success.feed.classifyingArticles"),
@@ -296,6 +306,7 @@ export const newsRouter = createTRPCRouter({
         }
       }
 
+      console.log(`[generateFeed] post-classification: classified=${classified.length}`);
       if (classified.length === 0) {
         return yield {
           status: "success" as const,
@@ -303,6 +314,7 @@ export const newsRouter = createTRPCRouter({
         };
       }
 
+      console.log(`[generateFeed] → GenerateDigests (${classified.length} articles)`);
       yield {
         status: "success" as const,
         info: ctx.t("success.feed.generatingDigests"),
