@@ -4,7 +4,7 @@ import type { TFn } from "./types";
 export const ClassificationSchema = z.object({
   classifications: z.array(
     z.object({
-      article_id: z.string().uuid(),
+      article_id: z.string().min(1),
       categories: z.array(z.string().max(100)),
     }),
   ),

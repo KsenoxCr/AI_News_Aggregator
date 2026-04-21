@@ -77,7 +77,6 @@ export const DIGEST = {
 export const DEFAULT = {
   sources: [
     { slug: "bbc-news", url: "https://feeds.bbci.co.uk/news/rss.xml" },
-    { slug: "reuters", url: "https://feeds.reuters.com/reuters/topNews" },
     { slug: "hacker-news", url: "https://news.ycombinator.com/rss" },
     { slug: "techcrunch", url: "https://techcrunch.com/feed/" },
   ],
