@@ -59,7 +59,7 @@ export const AGENT = {
   Anthropic: {
     endpoint: "https://api.anthropic.com/v1/messages",
     supported_models: [
-      "claude-3-haiku-20240307",
+      "claude-haiku-4-5-20251001",
       "claude-sonnet-4-20250514",
       "claude-opus-4-20250514",
     ],
