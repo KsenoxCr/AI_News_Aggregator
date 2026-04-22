@@ -1,6 +1,5 @@
 "use client";
 
-import { type Dispatch, type SetStateAction } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "~/lib/i18n/routing";
 import { Typography } from "../../_components/typography";

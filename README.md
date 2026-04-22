@@ -22,8 +22,6 @@ Use the toolbar to narrow what you see:
 - **Page size picker** — show 10, 20, or 50 digests per page
 - **Date picker** — jump to a specific day's digests (up to 30 days back)
 
-![Feed toolbar — category + date filter active](./docs/screenshots/feed_filtered.png)
-
 ### Digest Detail (modal)
 
 ![Digest detail modal](./docs/screenshots/digest_modal.png)
@@ -33,8 +31,6 @@ Opens inline as a modal over the feed. Shows the full digest text, categories, t
 Navigating directly to `/digests/[id]` renders the same content as a standalone full page (e.g. from a shared link or browser history).
 
 ### Generating the Feed
-
-![Feed generation — streaming in progress](./docs/screenshots/feed_generating.png)
 
 Generation starts automatically on every visit to the feed page. The pipeline streams results back in real time:
 
