@@ -73,7 +73,8 @@
     "preferences": {
       "title": "Mieltymykset",
       "moreCategories": "Lisää kategorioita",
-      "freeformPlaceholder": "Kuvaile lisämieltymyksiäsi omin sanoin..."
+      "freeformPlaceholder": "Kuvaile lisämieltymyksiäsi omin sanoin...",
+      "freeformNotImplemented": "Ei vielä toteutettu"
     },
     "save": "Tallenna"
   },

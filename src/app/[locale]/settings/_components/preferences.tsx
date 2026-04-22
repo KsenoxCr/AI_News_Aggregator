@@ -99,7 +99,7 @@ export function PreferencesSettings({
               disabled
               // onChange={(e) => setFreeform(e.target.value)}
               // placeholder={t("settings.preferences.freeformPlaceholder")}
-              placeholder={"Not implemented yet"}
+              placeholder={t("settings.preferences.freeformNotImplemented")}
               className="border-input bg-input/30 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 h-24 w-full resize-none rounded-xl border px-3 py-2 text-sm transition-colors outline-none focus-visible:ring-[3px]"
             />
             <Typography

@@ -73,7 +73,8 @@
     "preferences": {
       "title": "Preferences",
       "moreCategories": "More categories",
-      "freeformPlaceholder": "Describe additional preferences in your own words..."
+      "freeformPlaceholder": "Describe additional preferences in your own words...",
+      "freeformNotImplemented": "Not implemented yet"
     },
     "save": "Save"
   },
