@@ -30,7 +30,7 @@ export function DigestCard({
     <div
       className="bg-card border-border cursor-pointer rounded-xl border p-5"
       onClick={() => {
-        if (window.matchMedia("(pointer: fine)").matches) openModal();
+        if (!window.matchMedia("(pointer: fine)").matches) openModal();
       }}
     >
       <div className="flex flex-col gap-2">
